@@ -14,6 +14,7 @@ from fastapi.responses import FileResponse
 from loguru import logger
 
 from Backend.auth.jwt import get_current_user
+from Backend.api.limits import MAX_DURATION_SECONDS, MAX_DURATION_HELP
 from Backend.core.avatar_creator import AvatarCreator
 from Backend.core.tts import TTSEngine, VOICE_PRESETS
 from Backend.api.schemas import JobResponse, JobStatus
@@ -134,12 +135,19 @@ async def generate_with_avatar(
     audio: UploadFile = File(None, description="Audio file (alternative to text)"),
     voice: str = Form(None, description="Override voice preset"),
     prompt: str = Form(default="", description="Scene description"),
-    max_duration: float = Form(default=0, ge=0, le=300),
+    max_duration: float = Form(
+        default=0,
+        ge=0,
+        le=float(MAX_DURATION_SECONDS),
+        description=MAX_DURATION_HELP,
+    ),
     user: dict = Depends(get_current_user),
 ):
     """
     Generate video using a saved avatar.
     Just pick your avatar and type text — no need to upload image again!
+
+    **Duration:** Uses your audio/TTS length; use **max_duration=0** for full length (capped by server — see `GET /health`).
     """
     avatar = _creator.get_avatar(avatar_id)
     if not avatar:

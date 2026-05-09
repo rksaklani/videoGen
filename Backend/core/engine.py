@@ -37,6 +37,7 @@ class AvatarEngine:
         self.postprocessor = Postprocessor()
         self.text_cache = TextEmbeddingCache()
         self.memory = MemoryManager()
+        self._default_infer_steps = int(self.infer_cfg.get("default_steps", 50))
         self._loaded = False
 
     def load_models(self):
@@ -51,8 +52,10 @@ class AvatarEngine:
         os.environ["MODEL_BASE"] = base.replace("/ckpts", "")
 
         # Set environment for the original codebase
-        if self.infer_cfg["cpu_offload"]:
+        if self.infer_cfg.get("cpu_offload", True):
             os.environ["CPU_OFFLOAD"] = "1"
+        elif "CPU_OFFLOAD" in os.environ:
+            del os.environ["CPU_OFFLOAD"]
         os.environ["DISABLE_SP"] = "1"
         os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
@@ -70,9 +73,11 @@ class AvatarEngine:
             "--infer-steps", str(self.infer_cfg["default_steps"]),
             "--use-deepcache", "1" if self.infer_cfg["use_deepcache"] else "0",
             "--flow-shift-eval-video", "5.0",
-            "--use-fp8",
-            "--cpu-offload",
         ]
+        if self.model_cfg.get("use_fp8", True):
+            cli_args.append("--use-fp8")
+        if self.infer_cfg.get("cpu_offload", True):
+            cli_args.append("--cpu-offload")
 
         import argparse
         args = parse_args(namespace=argparse.Namespace())
@@ -90,9 +95,10 @@ class AvatarEngine:
         self.sampler = HunyuanVideoSampler.from_pretrained(
             ckpt_path, args=args, device=self.device)
         self.args = self.sampler.args
+        self._default_infer_steps = int(self.infer_cfg["default_steps"])
 
         # Apply CPU offloading
-        if self.infer_cfg["cpu_offload"]:
+        if self.infer_cfg.get("cpu_offload", True):
             from diffusers.hooks import apply_group_offloading
             apply_group_offloading(
                 self.sampler.pipeline.transformer,
@@ -122,7 +128,7 @@ class AvatarEngine:
         SpeedOptimizer.optimize_attention()
 
         # torch.compile for 10-20% speedup (skip if CPU offloading — incompatible)
-        if not self.infer_cfg["cpu_offload"]:
+        if not self.infer_cfg.get("cpu_offload", True):
             try:
                 self.sampler.pipeline.transformer = torch.compile(
                     self.sampler.pipeline.transformer, mode="reduce-overhead")
@@ -251,10 +257,12 @@ class AvatarEngine:
         logger.info(f"Generating single clip: image={image_path}, audio={audio_path}")
         logger.info(f"Free VRAM before generation: {self.memory.get_free_memory():.1f}GB")
 
-        # Dynamic step reduction for longer videos (speed optimization)
-        optimal_steps = QualityOptimizer.get_optimal_steps(max_duration)
+        optimal_steps = QualityOptimizer.get_optimal_steps(max_duration, self.infer_cfg)
         if optimal_steps != self.args.infer_steps:
-            logger.info(f"Dynamic steps: {self.args.infer_steps} → {optimal_steps} (for {max_duration:.1f}s)")
+            logger.info(
+                f"Inference steps: {self.args.infer_steps} → {optimal_steps} "
+                f"(duration {max_duration:.1f}s, dynamic={self.infer_cfg.get('use_dynamic_steps', False)})"
+            )
             self.args.infer_steps = optimal_steps
 
         # Setup progress tracking
@@ -271,7 +279,10 @@ class AvatarEngine:
         from Backend.engine.data_kits.audio_dataset import VideoAudioTextLoaderVal
 
         # Auto-calculate safe max frames based on available memory
-        safe_max = self.memory.estimate_max_frames(self.infer_cfg["default_image_size"])
+        safe_max = self.memory.estimate_max_frames(
+            self.infer_cfg["default_image_size"],
+            hard_cap=self.infer_cfg.get("max_vae_frames", 513),
+        )
         max_frames = min(int(max_duration * 25), self.infer_cfg["max_frames"], safe_max)
         max_frames = (max_frames // 4) * 4 + 1  # VAE alignment
         logger.info(f"Max frames: {max_frames} (safe limit: {safe_max})")
@@ -326,7 +337,13 @@ class AvatarEngine:
 
             # Save
             temp_video = output_path + ".tmp.mp4" if output_path else "temp_out.mp4"
-            self.postprocessor.save_video(frames, temp_video, fps=25)
+            self.postprocessor.save_video(
+                frames,
+                temp_video,
+                fps=self.infer_cfg.get("default_fps", 25),
+                crf=self.infer_cfg.get("video_encode_crf"),
+                preset=self.infer_cfg.get("video_encode_preset"),
+            )
             final = self.postprocessor.merge_audio(temp_video, audio_path, output_path)
 
             if os.path.exists(temp_video):
@@ -342,6 +359,7 @@ class AvatarEngine:
             }
         finally:
             os.remove(tmp_csv.name)
+            self.args.infer_steps = self._default_infer_steps
 
     def _generate_long(self, image_path: str, audio_path: str,
                        prompt: str, max_duration: float,
@@ -384,7 +402,14 @@ class AvatarEngine:
 
         # Stitch all clips with crossfade blending
         progress(0.95, "Stitching clips with smooth transitions...")
-        final = self.postprocessor.stitch_videos(clip_paths, output_path)
+        xf = float(self.infer_cfg.get("stitch_crossfade_seconds", 0.0) or 0.0)
+        final = self.postprocessor.stitch_videos(
+            clip_paths,
+            output_path,
+            crossfade_seconds=xf,
+            crf=self.infer_cfg.get("video_encode_crf"),
+            preset=self.infer_cfg.get("video_encode_preset"),
+        )
 
         # Cleanup chunks
         for cp in chunks + clip_paths:

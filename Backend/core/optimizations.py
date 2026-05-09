@@ -59,25 +59,29 @@ class MemoryManager:
         return torch.cuda.memory_allocated(0) / 1e9
 
     @staticmethod
-    def estimate_max_frames(image_size: int, available_gb: float = None) -> int:
-        """Estimate max frames that fit in available VRAM."""
+    def estimate_max_frames(
+        image_size: int,
+        available_gb: float = None,
+        hard_cap: int = 513,
+    ) -> int:
+        """Estimate max frames that fit in available VRAM (4n+1), capped by hard_cap."""
         if available_gb is None:
             available_gb = MemoryManager.get_free_memory()
 
-        # Empirical estimates based on RTX 4090 testing
-        # Memory per frame scales with resolution^2
+        hard_cap = max(65, int(hard_cap))
+        hard_cap = (hard_cap // 4) * 4 + 1
+
         pixels = image_size * image_size
-        base_memory_gb = 8.0  # Base model overhead
-        per_frame_gb = pixels / (512 * 512) * 0.08  # ~80MB per frame at 512x512
+        base_memory_gb = 8.0
+        per_frame_gb = pixels / (512 * 512) * 0.08
 
         usable = available_gb - base_memory_gb
         if usable <= 0:
-            return 65  # Minimum safe
+            return min(65, hard_cap)
 
         max_frames = int(usable / per_frame_gb)
-        # Must be 4n+1 for VAE
         max_frames = (max_frames // 4) * 4 + 1
-        return max(65, min(max_frames, 513))  # Cap at ~20 seconds
+        return max(65, min(max_frames, hard_cap))
 
 
 class SpeedOptimizer:
@@ -139,13 +143,23 @@ class QualityOptimizer:
         return schedule
 
     @staticmethod
-    def get_optimal_steps(duration_seconds: float) -> int:
-        """Recommend inference steps based on video duration."""
-        if duration_seconds <= 5:
-            return 30  # Good quality, reasonable speed
-        elif duration_seconds <= 10:
-            return 25  # Slightly faster for longer videos
-        elif duration_seconds <= 20:
-            return 20  # Speed priority for long videos
+    def get_optimal_steps(duration_seconds: float, infer_cfg: dict) -> int:
+        """Pick diffusion steps using default_steps and optional duration-based ramp-down."""
+        base = int(infer_cfg.get("default_steps", 50))
+        if not infer_cfg.get("use_dynamic_steps", False):
+            return base
+
+        floor = int(infer_cfg.get("dynamic_steps_floor", 28))
+        floor = max(12, min(floor, base))
+
+        # Gentler curve than the old defaults — stays nearer to `base` for quality.
+        if duration_seconds <= 6:
+            steps = base
+        elif duration_seconds <= 14:
+            steps = max(floor, base - 6)
+        elif duration_seconds <= 24:
+            steps = max(floor, base - 12)
         else:
-            return 15  # Minimum for very long videos
+            steps = max(floor, base - 18)
+
+        return max(floor, min(steps, base))

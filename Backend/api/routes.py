@@ -15,6 +15,7 @@ from Backend.utils.storage import Storage
 from Backend.core.engine import AvatarEngine
 from Backend.core.tts import TTSEngine, VOICE_PRESETS
 from Backend.auth.jwt import get_current_user
+from Backend.api.limits import MAX_DURATION_SECONDS, MAX_DURATION_HELP
 
 router = APIRouter()
 
@@ -39,10 +40,19 @@ async def health_check():
     status = engine.get_status()
     status["queue_pending"] = worker.pending_count
     status["gpu_busy"] = worker.is_busy
+    inf = engine.config.get("inference", {})
+    gen_lim = {
+        "max_output_duration_seconds": inf.get("max_duration_seconds"),
+        "chunk_duration_seconds": inf.get("chunk_duration_seconds"),
+        "stitch_crossfade_seconds": inf.get("stitch_crossfade_seconds"),
+        "output_follows_audio": True,
+        "note": "Generated length matches input audio, capped at max_output_duration_seconds unless max_duration is smaller.",
+    }
     return HealthResponse(
         status="ready" if status["loaded"] else "loading",
         engine_loaded=status["loaded"],
         gpu=status,
+        generation_limits=gen_lim,
     )
 
 
@@ -51,10 +61,18 @@ async def generate_avatar(
     image: UploadFile = File(..., description="Reference image or video"),
     audio: UploadFile = File(None, description="Audio file (optional if uploading video)"),
     prompt: str = Form(default="", description="Scene description"),
-    max_duration: float = Form(default=0, ge=0, le=300),
+    max_duration: float = Form(
+        default=0,
+        ge=0,
+        le=float(MAX_DURATION_SECONDS),
+        description=MAX_DURATION_HELP,
+    ),
 ):
     """
     Generate an avatar video.
+
+    **Duration:** Output length follows your **input audio** (or extracted audio from video),
+    up to `max_duration` if set, and never longer than the server cap (see `GET /health` → `generation_limits`).
 
     Supports:
     - Image + Audio → talking avatar
@@ -197,7 +215,12 @@ async def generate_avatar_from_text(
     text: str = Form(..., description="Text to speak"),
     voice: str = Form(default="en-male", description="Voice preset"),
     prompt: str = Form(default="", description="Scene description"),
-    max_duration: float = Form(default=0, ge=0, le=300),
+    max_duration: float = Form(
+        default=0,
+        ge=0,
+        le=float(MAX_DURATION_SECONDS),
+        description=MAX_DURATION_HELP,
+    ),
     rate: str = Form(default="+0%", description="Speech speed"),
 ):
     """
@@ -567,7 +590,12 @@ async def create_avatar_from_video(
     text: str = Form(None, description="New text for the avatar to speak (optional)"),
     voice: str = Form(default="", description="Voice preset (auto-detected from video if empty)"),
     prompt: str = Form(default="", description="Scene description"),
-    max_duration: float = Form(default=0, ge=0, le=300),
+    max_duration: float = Form(
+        default=0,
+        ge=0,
+        le=float(MAX_DURATION_SECONDS),
+        description=MAX_DURATION_HELP,
+    ),
     mode: str = Form(default="reanimate", description="'reanimate' = use video's audio, 'new-script' = use provided text"),
 ):
     """
