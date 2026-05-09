@@ -19,6 +19,8 @@ from Backend.core.tts import TTSEngine, VOICE_PRESETS
 from Backend.auth.jwt import get_current_user
 from Backend.api.limits import MAX_DURATION_SECONDS, MAX_DURATION_HELP
 from Backend.utils.ffmpeg_helpers import convert_audio_to_wav_16k_mono
+from Backend.api.deps import require_embedded_inference_ready
+from Backend.api.job_helpers import enqueue_video_job
 
 router = APIRouter()
 
@@ -120,17 +122,14 @@ async def generate_avatar(
         raise HTTPException(400, "Audio file required for image input. Upload a video to auto-extract audio.")
 
     # Create job
-    job = queue.create_job(
+    job = enqueue_video_job(
+        queue, storage, worker,
         image_path=str(image_path),
         audio_path=str(audio_path) if audio_path else "",
         prompt=prompt,
         max_duration=max_duration,
-        output_path="",
+        enqueue_reason="multipart_generate",
     )
-    job.output_path = str(storage.get_output_path(job.job_id))
-    queue.persist_job(job)
-
-    worker.process_job(job)
 
     mode = "video-to-avatar" if image_ext in {".mp4", ".avi", ".mov", ".mkv"} else "image+audio"
     return JobResponse(
@@ -145,6 +144,7 @@ async def get_job_status(job_id: str):
     """Check the status of a generation job."""
     job = queue.get_job(job_id)
     if not job:
+        logger.bind(job_id=job_id).debug("job status lookup miss")
         raise HTTPException(404, f"Job not found: {job_id}")
 
     return JobStatusResponse(
@@ -161,6 +161,7 @@ async def download_video(job_id: str):
     """Download the generated video."""
     job = queue.get_job(job_id)
     if not job:
+        logger.bind(job_id=job_id).debug("job download lookup miss")
         raise HTTPException(404, f"Job not found: {job_id}")
     if job.status != JobStatus.COMPLETED:
         raise HTTPException(400, f"Job not ready. Status: {job.status}")
@@ -256,19 +257,14 @@ async def generate_avatar_from_text(
     except Exception as e:
         raise HTTPException(500, f"TTS failed: {str(e)}")
 
-    # Create job
-    job = queue.create_job(
+    job = enqueue_video_job(
+        queue, storage, worker,
         image_path=str(image_path),
         audio_path=str(audio_path),
         prompt=prompt,
         max_duration=max_duration,
-        output_path="",
+        enqueue_reason="generate_from_text",
     )
-    job.output_path = str(storage.get_output_path(job.job_id))
-    queue.persist_job(job)
-
-    # Start processing
-    worker.process_job(job)
 
     return JobResponse(
         job_id=job.job_id,
@@ -279,7 +275,7 @@ async def generate_avatar_from_text(
 
 # ==================== Optimization Endpoints ====================
 
-@router.get("/optimization/status")
+@router.get("/optimization/status", dependencies=[Depends(require_embedded_inference_ready)])
 async def optimization_status():
     """Get current speed optimization status."""
     from Backend.core.tensorrt_optimizer import SpeedPipeline
@@ -287,7 +283,7 @@ async def optimization_status():
     return pipeline.get_optimization_status()
 
 
-@router.get("/optimization/profile")
+@router.get("/optimization/profile", dependencies=[Depends(require_embedded_inference_ready)])
 async def optimization_profile():
     """Get performance profile of model components."""
     from Backend.core.tensorrt_optimizer import SpeedPipeline
@@ -295,7 +291,7 @@ async def optimization_profile():
     return {"report": pipeline.profile_all()}
 
 
-@router.post("/optimization/apply")
+@router.post("/optimization/apply", dependencies=[Depends(require_embedded_inference_ready)])
 async def apply_optimizations():
     """Apply speed optimizations (TensorRT, torch.compile where safe)."""
     from Backend.core.tensorrt_optimizer import SpeedPipeline
@@ -355,7 +351,7 @@ async def speak_with_cloned_voice(
 
 # ==================== Video Processing Endpoints ====================
 
-@router.post("/video/upscale")
+@router.post("/video/upscale", dependencies=[Depends(require_embedded_inference_ready)])
 async def upscale_video(
     job_id: str = Form(..., description="Job ID of completed video"),
     target_height: int = Form(default=1080, ge=720, le=2160),
@@ -378,7 +374,7 @@ async def upscale_video(
     return FileResponse(result, media_type="video/mp4", filename=f"avatar_{job_id}_{target_height}p.mp4")
 
 
-@router.post("/video/add-overlay")
+@router.post("/video/add-overlay", dependencies=[Depends(require_embedded_inference_ready)])
 async def add_video_overlay(
     job_id: str = Form(..., description="Job ID of completed video"),
     overlay: UploadFile = File(..., description="Logo/watermark image"),
@@ -407,7 +403,7 @@ async def add_video_overlay(
 
 # ==================== Multi-Character Dialogue ====================
 
-@router.post("/generate-dialogue", response_model=JobResponse)
+@router.post("/generate-dialogue", response_model=JobResponse, dependencies=[Depends(require_embedded_inference_ready)])
 async def generate_dialogue(
     script: str = Form(..., description="Dialogue script (JSON format)"),
     char_a_image: UploadFile = File(..., description="Character A image"),
@@ -480,6 +476,8 @@ async def generate_dialogue(
         output_path="",
     )
     job.output_path = str(storage.get_output_path(job.job_id))
+    queue.persist_job(job)
+    logger.bind(job_id=job.job_id).info("dialogue_enqueue lines={}", len(parsed.lines))
 
     # Process in background
     import threading
@@ -501,8 +499,7 @@ async def generate_dialogue(
                              progress=1.0, message="Dialogue video ready!",
                              result=result)
         except Exception as e:
-            import traceback
-            logger.error(f"Dialogue job {job.job_id} failed: {traceback.format_exc()}")
+            logger.bind(job_id=job.job_id).exception("dialogue job failed")
             queue.update_job(job.job_id, error=str(e),
                              message=f"Failed: {str(e)}")
 
@@ -516,7 +513,7 @@ async def generate_dialogue(
     )
 
 
-@router.post("/generate-dialogue-simple", response_model=JobResponse)
+@router.post("/generate-dialogue-simple", response_model=JobResponse, dependencies=[Depends(require_embedded_inference_ready)])
 async def generate_dialogue_simple(
     char_a_image: UploadFile = File(..., description="Character A image"),
     char_b_image: UploadFile = File(None, description="Character B image"),
@@ -569,6 +566,8 @@ async def generate_dialogue_simple(
         prompt=scene_prompt, max_duration=0, output_path="",
     )
     job.output_path = str(storage.get_output_path(job.job_id))
+    queue.persist_job(job)
+    logger.bind(job_id=job.job_id).info("dialogue_simple_enqueue lines={}", len(lines))
 
     import threading
     def run():
@@ -583,8 +582,7 @@ async def generate_dialogue_simple(
             queue.update_job(job.job_id, status=JobStatus.COMPLETED,
                              progress=1.0, message="Done!", result=result)
         except Exception as e:
-            import traceback
-            logger.error(traceback.format_exc())
+            logger.bind(job_id=job.job_id).exception("dialogue_simple job failed")
             queue.update_job(job.job_id, error=str(e), message=f"Failed: {str(e)}")
 
     threading.Thread(target=run, daemon=True).start()
@@ -644,17 +642,14 @@ async def create_avatar_from_video(
             raise HTTPException(500, f"TTS failed: {str(e)}")
 
     # Create job — engine.generate handles video input automatically
-    job = queue.create_job(
-        image_path=str(video_path),  # Engine detects video and extracts frame
-        audio_path=str(audio_path) if audio_path else "",  # Empty = extract from video
+    job = enqueue_video_job(
+        queue, storage, worker,
+        image_path=str(video_path),
+        audio_path=str(audio_path) if audio_path else "",
         prompt=prompt,
         max_duration=max_duration,
-        output_path="",
+        enqueue_reason="create_avatar_from_video",
     )
-    job.output_path = str(storage.get_output_path(job.job_id))
-    queue.persist_job(job)
-
-    worker.process_job(job)
 
     mode_desc = "re-animating with original audio" if mode == "reanimate" else "speaking new text"
     return JobResponse(
@@ -664,7 +659,7 @@ async def create_avatar_from_video(
     )
 
 
-@router.post("/extract-from-video")
+@router.post("/extract-from-video", dependencies=[Depends(require_embedded_inference_ready)])
 async def extract_from_video(
     video: UploadFile = File(..., description="Video to extract frame and audio from"),
 ):

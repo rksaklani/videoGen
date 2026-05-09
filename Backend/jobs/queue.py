@@ -171,7 +171,7 @@ class JobQueue:
                    output_path: str = None):
         job = self._resolve_job(job_id)
         if not job:
-            logger.warning(f"update_job: unknown job_id {job_id}")
+            logger.bind(job_id=job_id).warning("update_job: unknown job_id")
             return
         if status:
             job.status = status

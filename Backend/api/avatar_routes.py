@@ -20,6 +20,7 @@ from Backend.utils.ffmpeg_helpers import convert_audio_to_wav_16k_mono
 from Backend.core.avatar_creator import AvatarCreator
 from Backend.core.tts import TTSEngine, VOICE_PRESETS
 from Backend.api.schemas import JobResponse, JobStatus
+from Backend.api.job_helpers import enqueue_video_job
 
 router = APIRouter(prefix="/avatars", tags=["Avatars"])
 
@@ -182,19 +183,14 @@ async def generate_with_avatar(
     else:
         raise HTTPException(400, "Provide either text or audio")
 
-    # Create job
-    from Backend.jobs.queue import Job
-    job = _queue.create_job(
+    job = enqueue_video_job(
+        _queue, _storage, _worker,
         image_path=image_path,
         audio_path=audio_path,
-        prompt=prompt or f"A person speaking naturally",
+        prompt=prompt or "A person speaking naturally",
         max_duration=max_duration,
-        output_path="",
+        enqueue_reason="saved_avatar_generate",
     )
-    job.output_path = str(_storage.get_output_path(job.job_id))
-    _queue.persist_job(job)
-
-    _worker.process_job(job)
 
     return JobResponse(
         job_id=job.job_id,
