@@ -25,7 +25,7 @@ export default function WebsiteLayout() {
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-purple-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
                 <FiZap className="w-5 h-5 text-white" />
               </div>
-              <span className="text-lg font-bold gradient-text">Avatar Studio</span>
+              <span className="text-lg font-bold gradient-text">videoGen</span>
             </Link>
 
             <div className="hidden md:flex items-center gap-1">
@@ -75,7 +75,7 @@ export default function WebsiteLayout() {
                 <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-brand-500 to-purple-500 flex items-center justify-center">
                   <FiZap className="w-4 h-4 text-white" />
                 </div>
-                <span className="font-bold gradient-text">Avatar Studio</span>
+                <span className="font-bold gradient-text">videoGen</span>
               </div>
               <p className="text-sm text-gray-500">AI-powered talking avatar videos.</p>
             </div>
@@ -104,7 +104,7 @@ export default function WebsiteLayout() {
             </div>
           </div>
           <div className="border-t border-gray-200 mt-8 pt-8 text-center text-sm text-gray-400">
-            © 2026 Avatar Studio. All rights reserved.
+            © 2026 videoGen. All rights reserved.
           </div>
         </div>
       </footer>

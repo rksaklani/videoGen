@@ -1,17 +1,39 @@
 """Background worker with job queue, concurrency control, and progress tracking."""
+from __future__ import annotations
+
 import threading
 import time
 from collections import deque
+from typing import TYPE_CHECKING
+
 from loguru import logger
+
 from Backend.api.schemas import JobStatus
 from Backend.jobs.queue import JobQueue, Job
-from Backend.core.engine import AvatarEngine
+
+if TYPE_CHECKING:
+    from Backend.core.engine import AvatarEngine
+
+
+class ApiOnlyJobRunner:
+    """Enqueue-only mode: persists jobs without running GPU inference (use standalone worker)."""
+
+    def process_job(self, job: Job) -> None:
+        pass
+
+    @property
+    def pending_count(self) -> int:
+        return 0
+
+    @property
+    def is_busy(self) -> bool:
+        return False
 
 
 class Worker:
     """Processes jobs sequentially (GPU can only handle one at a time)."""
 
-    def __init__(self, engine: AvatarEngine, queue: JobQueue):
+    def __init__(self, engine: "AvatarEngine", queue: JobQueue):
         self.engine = engine
         self.queue = queue
         self._pending = deque()

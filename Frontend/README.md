@@ -1,9 +1,9 @@
-# Avatar Studio — Frontend
+# videoGen — Frontend
 
-React 18 + Vite + Redux Toolkit dashboard for **Avatar Studio**. Talks to the Backend over **`VITE_API_URL`**.
+**React 18 + Vite + Redux Toolkit** UI for **videoGen**: marketing pages and a **`/dashboard`** hub for text-to-video, audio-to-video, video reference, dialogue, saved avatars, and billing hooks. Data layer: **RTK Query** in **`src/store/api.js`**.
 
-→ **Full stack guide:** **[`../README.md`](../README.md)**  
-→ **Backend API:** **`../Backend/README.md`**
+→ **Full stack:** [`../README.md`](../README.md)  
+→ **Backend API:** [`../Backend/README.md`](../Backend/README.md)
 
 ---
 
@@ -16,7 +16,7 @@ npm ci
 npm run dev
 ```
 
-Open **http://localhost:3000** (API default: **http://localhost:8000**).
+Open **http://localhost:3000** · API default origin: **http://localhost:8000** (`VITE_API_URL`).
 
 ---
 
@@ -26,11 +26,11 @@ Create **`.env`** from **`.env.example`**:
 
 | Variable | Purpose |
 |----------|---------|
-| **`VITE_API_URL`** | Backend origin **without** `/api/v1` (e.g. `http://localhost:8000`) |
-| **`VITE_APP_NAME`** | Optional display name |
+| **`VITE_API_URL`** | Backend base URL **without** `/api/v1` |
+| **`VITE_APP_NAME`** | Optional branding string (e.g. **videoGen**) |
 | **`VITE_APP_VERSION`** | Optional version string |
 
-Must match **`cors.origins`** in **`Backend/config.yaml`** if not same-origin.
+Origins must be allowed under **`cors.origins`** in **`Backend/config.yaml`**.
 
 ---
 
@@ -38,16 +38,17 @@ Must match **`cors.origins`** in **`Backend/config.yaml`** if not same-origin.
 
 | Command | Description |
 |---------|--------------|
-| **`npm ci`** | Install from **`package-lock.json`** (preferred in CI/production) |
-| **`npm run dev`** | Dev server with HMR |
-| **`npm run build`** | Production bundle → **`dist/`** |
-| **`npm run preview`** | Preview production build |
+| **`npm ci`** | Install from lockfile (CI/production) |
+| **`npm run dev`** | Dev server + HMR |
+| **`npm run build`** | Production build → **`dist/`** |
+| **`npm run preview`** | Preview production bundle |
 
 ---
 
 ## App routes
 
-- **`/`** — Marketing site · **`/dashboard`** — App hub (protected flow in your deployment)
-- **`/dashboard/text-to-video`** · **`/dashboard/audio-to-video`** · **`/dashboard/video-reference`** · **`/dashboard/dialogue`** · **`/dashboard/my-avatars`**, etc.
+- **`/`** — Landing / marketing  
+- **`/dashboard`** — Hub (authenticated flow per your deployment)  
+- **`/dashboard/text-to-video`**, **`audio-to-video`**, **`video-reference`**, **`dialogue`**, **`my-avatars`**, etc.
 
-API layer: **`src/store/api.js`** (RTK Query).
+API calls go through **`src/store/api.js`** and related slices under **`src/store/`**.

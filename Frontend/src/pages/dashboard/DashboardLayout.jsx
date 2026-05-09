@@ -47,7 +47,7 @@ export default function DashboardLayout() {
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-purple-500 flex items-center justify-center shadow-lg shadow-brand-500/20 flex-shrink-0">
             <FiZap className="w-5 h-5 text-white" />
           </div>
-          {(!collapsed || isMobile) && <span className="text-lg font-bold gradient-text">Studio</span>}
+          {(!collapsed || isMobile) && <span className="text-lg font-bold gradient-text">videoGen</span>}
         </Link>
         {/* Collapse toggle — desktop only */}
         {!isMobile && (

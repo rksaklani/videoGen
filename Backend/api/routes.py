@@ -1,4 +1,6 @@
 """API endpoints for avatar generation."""
+from __future__ import annotations
+
 import os
 from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
@@ -10,7 +12,7 @@ from Backend.api.schemas import (
     HealthResponse, JobStatus, TTSRequest,
 )
 from Backend.jobs.queue import JobQueue
-from Backend.jobs.worker import Worker
+from Backend.jobs.worker import Worker, ApiOnlyJobRunner
 from Backend.utils.storage import Storage
 from Backend.core.engine import AvatarEngine
 from Backend.core.tts import TTSEngine, VOICE_PRESETS
@@ -23,15 +25,22 @@ router = APIRouter()
 # These get injected by main.py
 engine: AvatarEngine = None
 queue: JobQueue = None
-worker: Worker = None
+worker: Worker | ApiOnlyJobRunner = None
 storage: Storage = None
 tts: TTSEngine = None
+_worker_mode = "embedded"
 
 
-def init_routes(_engine: AvatarEngine, _queue: JobQueue,
-                _worker: Worker, _storage: Storage):
-    global engine, queue, worker, storage, tts
+def init_routes(
+    _engine: AvatarEngine,
+    _queue: JobQueue,
+    _worker: Worker | ApiOnlyJobRunner,
+    _storage: Storage,
+    job_worker_mode: str = "embedded",
+):
+    global engine, queue, worker, storage, tts, _worker_mode
     engine, queue, worker, storage = _engine, _queue, _worker, _storage
+    _worker_mode = job_worker_mode
     tts = TTSEngine(output_dir=str(storage.temp_dir))
 
 
@@ -52,6 +61,7 @@ async def health_check():
     return HealthResponse(
         status="ready" if status["loaded"] else "loading",
         engine_loaded=status["loaded"],
+        worker_mode=_worker_mode,
         gpu=status,
         generation_limits=gen_lim,
     )
@@ -118,6 +128,7 @@ async def generate_avatar(
         output_path="",
     )
     job.output_path = str(storage.get_output_path(job.job_id))
+    queue.persist_job(job)
 
     worker.process_job(job)
 
@@ -254,6 +265,7 @@ async def generate_avatar_from_text(
         output_path="",
     )
     job.output_path = str(storage.get_output_path(job.job_id))
+    queue.persist_job(job)
 
     # Start processing
     worker.process_job(job)
@@ -640,6 +652,7 @@ async def create_avatar_from_video(
         output_path="",
     )
     job.output_path = str(storage.get_output_path(job.job_id))
+    queue.persist_job(job)
 
     worker.process_job(job)
 

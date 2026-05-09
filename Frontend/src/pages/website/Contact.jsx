@@ -15,7 +15,7 @@ export default function Contact() {
           <div className="space-y-4 text-gray-600">
             <div className="flex items-center gap-3">
               <FiMail className="w-5 h-5 text-brand-500" />
-              <span>support@avatarstudio.ai</span>
+              <span>support@videogen.app</span>
             </div>
             <div className="flex items-center gap-3">
               <FiMessageSquare className="w-5 h-5 text-brand-500" />

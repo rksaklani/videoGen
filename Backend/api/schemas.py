@@ -28,6 +28,7 @@ class JobStatusResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     engine_loaded: bool
+    worker_mode: str = Field(default="embedded", description="embedded | api_only")
     gpu: dict
     generation_limits: dict = Field(
         default_factory=dict,

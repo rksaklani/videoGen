@@ -1,10 +1,10 @@
 export default function About() {
   return (
     <div className="max-w-4xl mx-auto px-6 py-20">
-      <h1 className="text-4xl font-bold text-gray-900 mb-6">About Avatar Studio</h1>
+      <h1 className="text-4xl font-bold text-gray-900 mb-6">About videoGen</h1>
       <div className="glass-card rounded-3xl p-8 space-y-6 text-gray-600 leading-relaxed">
-        <p>Avatar Studio is an AI-powered platform that generates realistic talking avatar videos from a single photo and text or audio input.</p>
-        <p>Built on top of VideoGen, a state-of-the-art multimodal diffusion transformer model developed by Tencent, our platform brings professional-quality avatar video generation to everyone.</p>
+        <p>videoGen is an AI-powered platform that generates realistic talking avatar videos from a single photo and text or audio input.</p>
+        <p>Built on the Tencent <strong>Hunyuan</strong> family of multimodal video diffusion models, videoGen aims to bring professional-quality avatar videos to creators.</p>
         <h2 className="text-2xl font-bold text-gray-800 pt-4">What makes us different</h2>
         <ul className="space-y-3">
           <li className="flex gap-3"><span className="text-brand-500 font-bold">→</span> Multi-character scenes — generate two people talking in one video</li>

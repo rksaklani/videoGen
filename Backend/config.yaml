@@ -1,4 +1,4 @@
-# VideoGen API Configuration
+# videoGen — Backend API configuration
 # All settings in one place — no more magic numbers
 
 server:
@@ -53,13 +53,12 @@ logging:
   level: "INFO"
   file: "./Backend/logs/Backend.log"
 
+# Prefer MONGODB_URI and MONGODB_NAME env vars for production secrets.
 database:
-  uri: "mongodb+srv://[db_user]:[db_password]@cluster0.smtyx9g.mongodb.net/"
+  uri: "mongodb://localhost:27017"
   name: "avatar_studio"
 
-auth:
-  jwt_secret: "avatar-studio-secret-change-in-production"
-  token_expire_hours: 24
+# JWT: JWT_SECRET (required for production); optional ACCESS_TOKEN_EXPIRE_HOURS (default 24).
 
 cors:
   origins:

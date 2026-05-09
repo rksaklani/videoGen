@@ -1,5 +1,4 @@
-"""
-Avatar profile endpoints — Create once, use forever.
+"""Avatar profile endpoints — Create once, use forever.
 
 Flow:
 1. POST /avatars/create-from-video → Upload video → creates avatar
@@ -7,6 +6,8 @@ Flow:
 3. GET  /avatars/list → See all your avatars
 4. POST /avatars/{id}/generate → Pick avatar + type text → get video
 """
+from __future__ import annotations
+
 import os
 from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
@@ -191,6 +192,7 @@ async def generate_with_avatar(
         output_path="",
     )
     job.output_path = str(_storage.get_output_path(job.job_id))
+    _queue.persist_job(job)
 
     _worker.process_job(job)
 

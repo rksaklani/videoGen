@@ -7,10 +7,15 @@ import hashlib
 import secrets
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from loguru import logger
 
-SECRET_KEY = os.getenv("JWT_SECRET", "avatar-studio-secret-change-in-production")
+SECRET_KEY = (os.getenv("JWT_SECRET") or "").strip()
+if not SECRET_KEY:
+    SECRET_KEY = "videogen-dev-only-unsafe"
+    logger.warning("JWT_SECRET is not set — using an insecure development default; set JWT_SECRET in production.")
+
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_HOURS = 24
+ACCESS_TOKEN_EXPIRE_HOURS = int(os.getenv("ACCESS_TOKEN_EXPIRE_HOURS", "24"))
 
 security = HTTPBearer(auto_error=False)
 

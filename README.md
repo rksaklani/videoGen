@@ -1,35 +1,37 @@
-# Avatar Studio — Backend + Frontend
+# videoGen — Backend + Frontend
 
-Full-stack **audio-driven avatar video** app: **FastAPI** (`Backend`) + **React/Vite** (`Frontend`). Core generation uses the HunyuanVideo-Avatar–style diffusion stack under `Backend/engine/`.
+Full-stack **audio-driven avatar / talking-head video** app: **`Backend`** (FastAPI API + diffusion inference + job queue) and **`Frontend`** (React 18 + Vite dashboard). Heavy models and pipelines live under **`Backend/engine/`** and **`Backend/core/`**.
 
 | Area | Role | Docs |
 |------|------|------|
-| **Backend** | REST API, job queue, model inference, FFmpeg | [`Backend/README.md`](Backend/README.md) · full install **[`docs/INSTALL.md`](docs/INSTALL.md)** |
-| **Frontend** | Dashboard UI (text/audio/video/dialogue flows) | [`Frontend/README.md`](Frontend/README.md) |
+| **Backend** | REST API, optional Mongo-backed jobs, GPU worker, FFmpeg, TTS | [`Backend/README.md`](Backend/README.md) |
+| **Frontend** | Marketing site + dashboard (text/audio/video/dialogue/avatars) | [`Frontend/README.md`](Frontend/README.md) |
 
 ---
 
 ## Requirements (short)
 
-- **Linux + NVIDIA GPU** recommended for inference (see **`docs/INSTALL.md`**).
-- **Python 3.10**, **CUDA PyTorch**, **`ffmpeg`** on `PATH`.
-- **Node.js 18+** for the Frontend (use **`npm ci`**).
+- **Linux + NVIDIA GPU** recommended for inference (see project install notes / conda).
+- **Python 3.10+**, **CUDA PyTorch**, **`ffmpeg`** on `PATH`.
+- **Node.js 18+** for the Frontend (`npm ci`).
 
-Download **model weights** into `Backend/weights/` (see `Backend/weights/` or Hugging Face — often ~tens of GB).
+Download **model weights** into `Backend/weights/` (often tens of GB — see weight layout under that tree or your model source).
 
 ---
 
 ## One-command stack (recommended)
 
-From the **repository root** (requires conda env **`VideoGen`** per `start.sh`, or edit `conda activate`):
+From the **repository root** (uses conda env **`VideoGen`** in `start.sh` — adjust `conda activate` if needed):
 
 ```bash
 bash start.sh
 ```
 
-- **Frontend:** http://localhost:3000  
-- **API docs:** http://localhost:8000/docs  
-- **Health:** http://localhost:8000/api/v1/health  
+| Service | URL |
+|--------|-----|
+| **Frontend** | http://localhost:3000 |
+| **API docs** | http://localhost:8000/docs |
+| **Health** | http://localhost:8000/api/v1/health |
 
 Logs: `Backend/logs/server.log`, `Backend/logs/frontend.log` · Stop: `./stop.sh` or Ctrl+C in the `start.sh` terminal.
 
@@ -43,9 +45,22 @@ export LD_LIBRARY_PATH="${CONDA_PREFIX}/lib:${LD_LIBRARY_PATH}"   # if using con
 python -m Backend.main
 ```
 
-Configuration: **`Backend/config.yaml`** · Dependencies: **`Backend/requirements.txt`** (install PyTorch CUDA **first** — **`docs/INSTALL.md`**).
+| Item | Location |
+|------|----------|
+| **Config** | `Backend/config.yaml` (inference, storage, CORS) |
+| **Dependencies** | `Backend/requirements.txt` — install **PyTorch CUDA** first where applicable |
+| **Entry** | `python -m Backend.main` |
 
-Entry point: **`python -m Backend.main`** · Open **`/docs`** for OpenAPI.
+**Useful env (see `Backend/.env.example` if present):**
+
+| Variable | Purpose |
+|----------|---------|
+| **`JWT_SECRET`** | Sign auth tokens (set in production) |
+| **`MONGODB_URI`** / **`MONGODB_NAME`** | Durable **`jobs`** collection (optional; falls back to in-memory if unset/unreachable) |
+| **`JOB_WORKER_MODE`** | **`embedded`** (API runs GPU worker in-process, default) or **`api_only`** (enqueue only; run `python -m Backend.worker_main` on a GPU machine) |
+| **`JOB_QUEUE_MEMORY_ONLY`** | `1` forces in-memory queue (no Mongo persistence) |
+
+Open **`http://localhost:8000/docs`** for OpenAPI. **`GET /api/v1/health`** exposes GPU status, **`generation_limits`**, and **`worker_mode`**.
 
 ---
 
@@ -58,8 +73,12 @@ npm ci
 npm run dev
 ```
 
-- **`VITE_API_URL`** — Base URL **without** `/api/v1` (example: `http://localhost:8000`). Same origin as CORS entries in **`Backend/config.yaml`**.
-- Production build: **`npm run build`** → **`Frontend/dist/`**.
+| Variable | Purpose |
+|----------|---------|
+| **`VITE_API_URL`** | Backend origin **without** `/api/v1` (e.g. `http://localhost:8000`) |
+| **`VITE_APP_NAME`** | UI label (default can be **`videoGen`**) |
+
+`cors.origins` in **`Backend/config.yaml`** must include the Frontend origin (e.g. `http://localhost:3000`). Production bundle: **`npm run build`** → **`Frontend/dist/`**.
 
 ---
 
@@ -67,26 +86,26 @@ npm run dev
 
 ```
 .
-├── Backend/                 # FastAPI + inference engine
-│   ├── main.py
+├── Backend/
+│   ├── main.py               # FastAPI app
+│   ├── worker_main.py        # Standalone GPU worker (with api_only + Mongo)
 │   ├── config.yaml
 │   ├── requirements.txt
-│   └── engine/              # diffusion, VAE, audio pipeline
-├── Frontend/                # Vite + React dashboard
-│   ├── src/
+│   ├── api/                  # Routes, schemas, limits
+│   ├── core/                 # AvatarEngine, preprocess, TTS, etc.
+│   ├── jobs/                 # Job queue + embedded worker
+│   ├── db/                   # Mongo (Motor + sync helpers for jobs)
+│   └── engine/               # Diffusion / VAE stack
+├── Frontend/
+│   ├── src/                  # React app, RTK Query API layer
 │   ├── package.json
 │   └── .env.example
-├── docs/INSTALL.md          # PyTorch, conda, Docker
 ├── Dockerfile
 ├── docker-compose.yml
 ├── environment.yml
-├── scripts/check_system.sh
+├── scripts/
 ├── start.sh / stop.sh
-└── README.md                  # ← this file
+└── README.md
 ```
 
 ---
-
-
-
-

@@ -1,10 +1,10 @@
 #!/bin/bash
-# Avatar Studio — Start Backend + Frontend with one command
+# videoGen — Start Backend + Frontend with one command
 # Usage: bash start.sh
 
 set -e
 
-echo "🎬 Avatar Studio — Starting..."
+echo "🎬 videoGen — Starting..."
 echo ""
 
 # Colors
@@ -60,7 +60,7 @@ sleep 3
 
 echo ""
 echo -e "${GREEN}════════════════════════════════════════${NC}"
-echo -e "${GREEN}  🎬 Avatar Studio is Running!          ${NC}"
+echo -e "${GREEN}  🎬 videoGen is Running!               ${NC}"
 echo -e "${GREEN}════════════════════════════════════════${NC}"
 echo ""
 echo -e "  Frontend:  ${BLUE}http://localhost:3000${NC}"

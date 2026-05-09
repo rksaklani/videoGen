@@ -32,7 +32,7 @@ export default function Login() {
             <FiZap className="w-6 h-6 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
-          <p className="text-gray-500 text-sm mt-1">Log in to your Avatar Studio account</p>
+          <p className="text-gray-500 text-sm mt-1">Log in to your videoGen account</p>
         </div>
 
         {error && <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">{error}</div>}

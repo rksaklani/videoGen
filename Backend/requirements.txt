@@ -1,4 +1,4 @@
-# Avatar Studio — Python dependencies (PyTorch installed separately — see docs/INSTALL.md)
+# videoGen — Python dependencies (PyTorch installed separately — see docs/INSTALL.md)
 # Install from repo root:
 #   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 #   pip install -r Backend/requirements.txt

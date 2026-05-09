@@ -21,7 +21,7 @@ export default function Navbar({ activePage, onNavigate, health }) {
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-purple-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
               <FiZap className="w-5 h-5 text-white" />
             </div>
-            <span className="text-lg font-bold gradient-text">Avatar Studio</span>
+            <span className="text-lg font-bold gradient-text">videoGen</span>
           </div>
 
           {/* Desktop Nav */}

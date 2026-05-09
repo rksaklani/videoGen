@@ -17,7 +17,7 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-6 pt-20 pb-16 text-center">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-card text-sm text-brand-600 font-medium mb-6">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          Powered by VideoGen AI
+          Powered by Hunyuan multimodal diffusion
         </div>
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight max-w-4xl mx-auto">
           Create Talking Avatar Videos with <span className="gradient-text">AI</span>
@@ -44,7 +44,7 @@ export default function Home() {
             <div className="w-20 h-20 rounded-full bg-white/80 flex items-center justify-center mx-auto shadow-xl mb-4">
               <FiPlay className="w-8 h-8 text-brand-500 ml-1" />
             </div>
-            <p className="text-gray-500 font-medium">See Avatar Studio in action</p>
+            <p className="text-gray-500 font-medium">See videoGen in action</p>
           </div>
         </div>
       </section>
