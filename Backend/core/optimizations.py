@@ -44,12 +44,11 @@ class MemoryManager:
 
     @staticmethod
     def get_free_memory() -> float:
-        """Get free GPU memory in GB."""
+        """Free GPU memory in GB (CUDA driver view — better for budgeting than total - allocated)."""
         if not torch.cuda.is_available():
             return 0.0
-        total = torch.cuda.get_device_properties(0).total_memory
-        used = torch.cuda.memory_allocated(0)
-        return (total - used) / 1e9
+        free_b, _total_b = torch.cuda.mem_get_info()
+        return free_b / 1e9
 
     @staticmethod
     def get_used_memory() -> float:
@@ -64,24 +63,36 @@ class MemoryManager:
         available_gb: float = None,
         hard_cap: int = 513,
     ) -> int:
-        """Estimate max frames that fit in available VRAM (4n+1), capped by hard_cap."""
+        """
+        Estimate max frames for one diffusion pass (4n+1), capped by hard_cap.
+
+        `available_gb` must be **free** VRAM (models already resident). Older code
+        wrongly subtracted a fixed 8GB “base” from free memory and forced a minimum
+        of 65 frames — that guaranteed OOM on ~24GB cards at 704px.
+        """
         if available_gb is None:
             available_gb = MemoryManager.get_free_memory()
 
-        hard_cap = max(65, int(hard_cap))
+        hard_cap = max(17, int(hard_cap))
         hard_cap = (hard_cap // 4) * 4 + 1
 
+        # Free VRAM already accounts for loaded weights; only reserve a little for spikes / fragmentation.
+        reserve_gb = 0.75
+        usable = max(0.0, available_gb - reserve_gb)
+
         pixels = image_size * image_size
-        base_memory_gb = 8.0
-        per_frame_gb = pixels / (512 * 512) * 0.08
+        # Conservative GB per frame at this spatial size (diffusion activations + VAE decode).
+        per_frame_gb = pixels / (512 * 512) * 0.10
 
-        usable = available_gb - base_memory_gb
+        min_chunk = 17  # 4*4+1; smallest aligned chunk we attempt under pressure
+
         if usable <= 0:
-            return min(65, hard_cap)
+            return min(min_chunk, hard_cap)
 
-        max_frames = int(usable / per_frame_gb)
-        max_frames = (max_frames // 4) * 4 + 1
-        return max(65, min(max_frames, hard_cap))
+        raw = int(usable / per_frame_gb)
+        raw = max(raw, min_chunk)
+        max_frames = (raw // 4) * 4 + 1
+        return min(max_frames, hard_cap)
 
 
 class SpeedOptimizer:

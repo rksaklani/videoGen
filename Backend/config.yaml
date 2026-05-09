@@ -23,11 +23,12 @@ inference:
   default_steps: 45
   default_cfg_scale: 7.5
   default_seed: 42
-  default_image_size: 704
+  # 512 is safest on 24GB with LLaVA + DiT; raise toward 704 only if mem_get_info shows plenty of free VRAM.
+  default_image_size: 512
   max_image_size: 768
   default_fps: 25
   max_frames: 9999          # No artificial limit — audio duration = video duration
-  max_vae_frames: 641      # Max frames per diffusion pass (4n+1); ~25.6s @ 25fps on roomy VRAM
+  max_vae_frames: 385       # Per-pass frame ceiling (4n+1); raise with more VRAM / lower resolution
   max_duration_seconds: 300  # 5 minutes max
   chunk_duration_seconds: 8  # Fewer chunks / seams than 5s; reduce if OOM
   use_deepcache: true
