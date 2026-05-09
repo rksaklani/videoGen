@@ -1,4 +1,4 @@
-"""Core avatar generation engine — clean wrapper around HunyuanVideo-Avatar."""
+"""Core avatar generation engine — clean wrapper around VideoGen."""
 import os
 import gc
 import sys
@@ -15,13 +15,13 @@ sys.path.insert(0, PROJECT_ROOT)
 
 from .preprocessor import Preprocessor
 from .postprocessor import Postprocessor
-from .optimizations import TextEmbeddingCache, MemoryManager, SpeedOptimizer, QualityOptimizer
+from .optimizations import MemoryManager, SpeedOptimizer, QualityOptimizer
 from .retry import with_retry
 from .progress import ProgressTracker, patch_pipeline_progress
 
 
 class AvatarEngine:
-    """Production wrapper around HunyuanVideo-Avatar inference."""
+    """Production wrapper around VideoGen inference."""
 
     def __init__(self, config_path: str = "Backend/config.yaml"):
         with open(config_path) as f:
@@ -35,7 +35,6 @@ class AvatarEngine:
         self.wav2vec = None
         self.preprocessor = None
         self.postprocessor = Postprocessor()
-        self.text_cache = TextEmbeddingCache()
         self.memory = MemoryManager()
         self._default_infer_steps = int(self.infer_cfg.get("default_steps", 50))
         self._loaded = False
@@ -79,16 +78,10 @@ class AvatarEngine:
         if self.infer_cfg.get("cpu_offload", True):
             cli_args.append("--cpu-offload")
 
-        import argparse
-        args = parse_args(namespace=argparse.Namespace())
-        # Override with our CLI args
-        args = parse_args(namespace=None)
-        # Re-parse with our args
-        import sys as _sys
-        old_argv = _sys.argv
-        _sys.argv = ["engine"] + cli_args
+        old_argv = sys.argv
+        sys.argv = ["engine"] + cli_args
         args = parse_args()
-        _sys.argv = old_argv
+        sys.argv = old_argv
 
         # Load main sampler
         from Backend.engine.sample_inference_audio import HunyuanVideoSampler
@@ -273,7 +266,6 @@ class AvatarEngine:
         # Cleanup before starting
         self.memory.cleanup()
 
-        import pandas as pd
         import tempfile
         from torch.utils.data import DataLoader
         from Backend.engine.data_kits.audio_dataset import VideoAudioTextLoaderVal

@@ -24,7 +24,7 @@ sleep 2
 
 # Activate conda
 source $(conda info --base)/etc/profile.d/conda.sh
-conda activate HunyuanVideo-Avatar
+conda activate VideoGen
 
 # Set environment
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH

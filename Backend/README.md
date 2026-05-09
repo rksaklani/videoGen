@@ -1,62 +1,52 @@
-# Avatar API — Production Backend
+# Avatar Studio — Backend (API + inference)
 
-Audio-driven avatar video generation API, powered by HunyuanVideo-Avatar.
+FastAPI service wrapping the diffusion **audio → video** pipeline. For **install, PyTorch CUDA, Docker, and weights**, see the repo root **`README.md`** and **`docs/INSTALL.md`**.
+
+---
 
 ## Structure
 
 ```
 Backend/
-├── main.py                  ← FastAPI entry point
-├── config.yaml              ← All settings (no magic numbers)
-├── requirements.txt         ← API-specific dependencies
-│
-├── engine/                  ← AI engine (HunyuanVideo-Avatar core)
-│   ├── inference.py         ← Model loading
-│   ├── sample_inference_audio.py  ← Main prediction
-│   ├── config.py            ← Engine args
-│   ├── constants.py         ← Model paths
-│   ├── modules/             ← Transformer, attention, MLP
-│   ├── diffusion/           ← Diffusion pipeline + scheduler
-│   ├── vae/                 ← Video encoder/decoder
-│   ├── data_kits/           ← Audio + face processing
-│   └── text_encoder/        ← Text encoder utils
-│
-├── core/                    ← Production wrapper
-│   ├── engine.py            ← Clean API around the AI engine
-│   ├── preprocessor.py      ← Image/audio/video input handling
-│   └── postprocessor.py     ← Video saving, stitching, merge
-│
-├── api/                     ← REST endpoints
-│   ├── routes.py            ← All API routes
-│   └── schemas.py           ← Request/response validation
-│
-├── jobs/                    ← Background processing
-│   ├── queue.py             ← Job management
-│   └── worker.py            ← Async job execution
-│
-├── utils/                   ← Utilities
-│   ├── storage.py           ← File storage (S3-ready)
-│   └── logger.py            ← Centralized logging
-│
-├── weights/ → symlink       ← Model weights (80GB)
-└── assets/ → symlink        ← Sample test files
+├── main.py                   # FastAPI entry (uvicorn: python -m Backend.main)
+├── config.yaml               # Server, model paths, inference, storage
+├── requirements.txt          # Pip deps — install PyTorch separately (see INSTALL)
+├── api/                      # Routes, schemas, limits
+├── core/                     # AvatarEngine, preprocess, postprocess, dialogue, TTS
+├── engine/                   # Diffusion/VAE/transformer (research stack)
+├── jobs/                     # In-memory worker + queue
+├── weights/                  # Checkpoints (not in git — symlink or copy)
+├── data/                     # uploads, outputs, temp (runtime)
+└── logs/
 ```
 
-## Quick Start
+---
+
+## Quick start
+
+From **repository root** (parent of `Backend/`):
 
 ```bash
-conda activate HunyuanVideo-Avatar
-export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
-export PYTHONPATH=./
+export PYTHONPATH="$(pwd)"
+export LD_LIBRARY_PATH="${CONDA_PREFIX}/lib:${LD_LIBRARY_PATH}"   # if conda
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+pip install -r Backend/requirements.txt
 python -m Backend.main
 ```
 
-Open: http://localhost:8000/docs
+- **Swagger:** http://localhost:8000/docs  
+- **Health:** http://localhost:8000/api/v1/health  
 
-## API Endpoints
+---
 
-- `POST /api/v1/generate` — Upload image + audio → job ID
-- `GET  /api/v1/status/{job_id}` — Check progress
-- `GET  /api/v1/download/{job_id}` — Download video
-- `GET  /api/v1/jobs` — List all jobs
-- `GET  /api/v1/health` — System status
+## Notable endpoints
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| POST | **`/api/v1/generate`** | Image/audio (or video) → job ID |
+| POST | **`/api/v1/generate-from-text`** | Image + script (TTS) → job ID |
+| GET | **`/api/v1/status/{job_id}`** | Progress |
+| GET | **`/api/v1/download/{job_id}`** | MP4 when complete |
+| GET | **`/api/v1/health`** | GPU + **`generation_limits`** |
+
+Full list in **`openapi.json`** via **`/docs`**.

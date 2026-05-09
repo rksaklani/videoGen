@@ -233,24 +233,3 @@ class Postprocessor:
                 os.remove(tmp)
 
         return output_path
-
-    def blend_frame_transition(self, frames_a: np.ndarray, frames_b: np.ndarray,
-                                overlap: int = 5) -> np.ndarray:
-        """Blend the last N frames of clip A with first N frames of clip B."""
-        if overlap <= 0 or len(frames_a) < overlap or len(frames_b) < overlap:
-            return np.concatenate([frames_a, frames_b], axis=0)
-
-        blended = []
-        # Keep all frames before overlap
-        blended.extend(frames_a[:-overlap])
-
-        # Blend overlap region
-        for i in range(overlap):
-            alpha = i / overlap
-            frame = ((1 - alpha) * frames_a[-(overlap - i)] + alpha * frames_b[i]).astype(np.uint8)
-            blended.append(frame)
-
-        # Keep all frames after overlap
-        blended.extend(frames_b[overlap:])
-
-        return np.stack(blended, axis=0)

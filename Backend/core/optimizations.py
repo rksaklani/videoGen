@@ -1,34 +1,9 @@
 """
 Speed, memory, and quality optimizations for the avatar engine.
 """
-import os
 import gc
 import torch
-import functools
 from loguru import logger
-
-
-class TextEmbeddingCache:
-    """Cache text embeddings to avoid re-encoding the same prompts."""
-
-    def __init__(self, max_size: int = 100):
-        self._cache = {}
-        self._max_size = max_size
-
-    def get(self, prompt: str):
-        return self._cache.get(prompt)
-
-    def put(self, prompt: str, embeddings: dict):
-        if len(self._cache) >= self._max_size:
-            oldest = next(iter(self._cache))
-            del self._cache[oldest]
-        self._cache[prompt] = {
-            k: v.cpu().clone() if torch.is_tensor(v) else v
-            for k, v in embeddings.items()
-        }
-
-    def clear(self):
-        self._cache.clear()
 
 
 class MemoryManager:

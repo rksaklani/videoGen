@@ -17,7 +17,7 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-6 pt-20 pb-16 text-center">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-card text-sm text-brand-600 font-medium mb-6">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          Powered by HunyuanVideo-Avatar AI
+          Powered by VideoGen AI
         </div>
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight max-w-4xl mx-auto">
           Create Talking Avatar Videos with <span className="gradient-text">AI</span>

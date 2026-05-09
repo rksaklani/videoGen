@@ -1,5 +1,5 @@
 """
-TensorRT Speed Optimization Pipeline for HunyuanVideo-Avatar.
+TensorRT Speed Optimization Pipeline for VideoGen.
 
 This module handles:
 1. Profiling each model component to find bottlenecks

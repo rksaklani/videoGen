@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 from loguru import logger
 
 from Backend.api.schemas import (
-    GenerateRequest, JobResponse, JobStatusResponse,
+    JobResponse, JobStatusResponse,
     HealthResponse, JobStatus, TTSRequest,
 )
 from Backend.jobs.queue import JobQueue

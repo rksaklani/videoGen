@@ -1,5 +1,9 @@
-# Avatar API — All Dependencies
-# Install: pip install -r avatar_api/requirements.txt
+# Avatar Studio — Python dependencies (PyTorch installed separately — see docs/INSTALL.md)
+# Install from repo root:
+#   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+#   pip install -r Backend/requirements.txt
+#
+# System binary required on PATH: ffmpeg (apt install ffmpeg / brew install ffmpeg / conda install ffmpeg)
 
 # === AI Engine ===
 opencv-python==4.9.0.80
@@ -16,13 +20,13 @@ librosa==0.11.0
 scikit-video==1.1.11
 imageio==2.34.0
 imageio-ffmpeg==0.5.1
-ffmpeg
 
 # === API Server ===
 fastapi==0.115.12
 uvicorn==0.34.2
 pyyaml>=6.0
 python-multipart>=0.0.18
+slowapi>=0.1.9
 
 # === Utilities ===
 loguru==0.7.2

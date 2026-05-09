@@ -3,54 +3,54 @@ pipeline_tag: image-to-video
 language:
 - en
 ---
-<!-- ## **HunyuanVideo-Avatar** -->
+<!-- ## **VideoGen** -->
 
 <p align="center">
   <img src="https://cdn-uploads.huggingface.co/production/uploads/646d7592bb95b5d4001e5a04/HDZpvr8F-UaHAHlsF--fh.png"  height=100>
 </p>
  
 <div align="center">
-  <a href="https://github.com/Tencent-Hunyuan/HunyuanVideo-Avatar"><img src="https://img.shields.io/static/v1?label=HunyuanVideo-Avatar%20Code&message=Github&color=blue"></a>
-  <a href="https://HunyuanVideo-Avatar.github.io/"><img src="https://img.shields.io/static/v1?label=Project%20Page&message=Web&color=green"></a>
+  <a href="https://github.com/Tencent-Hunyuan/VideoGen"><img src="https://img.shields.io/static/v1?label=VideoGen%20Code&message=Github&color=blue"></a>
+  <a href="https://VideoGen.github.io/"><img src="https://img.shields.io/static/v1?label=Project%20Page&message=Web&color=green"></a>
   <a href="https://hunyuan.tencent.com/modelSquare/home/play?modelId=126"><img src="https://img.shields.io/static/v1?label=Playground&message=Web&color=green"></a>
   <a href="https://arxiv.org/pdf/2505.20156"><img src="https://img.shields.io/static/v1?label=Tech Report&message=Arxiv&color=red"></a>
-  <a href="https://huggingface.co/tencent/HunyuanVideo-Avatar"><img src="https://img.shields.io/static/v1?label=HunyuanVideo-Avatar&message=HuggingFace&color=yellow"></a>
+  <a href="https://huggingface.co/tencent/VideoGen"><img src="https://img.shields.io/static/v1?label=VideoGen&message=HuggingFace&color=yellow"></a>
 </div>
 
 
 
 ![image](assets/teaser.png)
 
-> [**HunyuanVideo-Avatar: High-Fidelity Audio-Driven Human Animation for Multiple Characters**](https://arxiv.org/pdf/2505.20156) <be>
+> [**VideoGen: High-Fidelity Audio-Driven Human Animation for Multiple Characters**](https://arxiv.org/pdf/2505.20156) <be>
 
 ## **Abstract**
 
-Recent years have witnessed significant progress in audio-driven human animation. However, critical challenges remain in (i) generating highly dynamic videos while preserving character consistency, (ii) achieving precise emotion alignment between characters and audio, and (iii) enabling multi-character audio-driven animation. To address these challenges, we propose HunyuanVideo-Avatar, a multimodal diffusion transformer (MM-DiT)-based model capable of simultaneously generating dynamic, emotion-controllable, and multi-character dialogue videos. Concretely, HunyuanVideo-Avatar introduces three key innovations: (i) A character image injection module is designed to replace the conventional addition-based character conditioning scheme, eliminating the inherent condition mismatch between training and inference. This ensures the dynamic motion and strong character consistency; (ii) An Audio Emotion Module (AEM) is introduced to extract and transfer the emotional cues from an emotion reference image to the target generated video, enabling fine-grained and accurate emotion style control; (iii) A Face-Aware Audio Adapter (FAA) is proposed to isolate the audio-driven character with latent-level face mask, enabling independent audio injection via cross-attention for multi-character scenarios. These innovations empower HunyuanVideo-Avatar to surpass state-of-the-art methods on benchmark datasets and a newly proposed wild dataset, generating realistic avatars in dynamic, immersive scenarios. The source code and model weights will be released publicly.
+Recent years have witnessed significant progress in audio-driven human animation. However, critical challenges remain in (i) generating highly dynamic videos while preserving character consistency, (ii) achieving precise emotion alignment between characters and audio, and (iii) enabling multi-character audio-driven animation. To address these challenges, we propose VideoGen, a multimodal diffusion transformer (MM-DiT)-based model capable of simultaneously generating dynamic, emotion-controllable, and multi-character dialogue videos. Concretely, VideoGen introduces three key innovations: (i) A character image injection module is designed to replace the conventional addition-based character conditioning scheme, eliminating the inherent condition mismatch between training and inference. This ensures the dynamic motion and strong character consistency; (ii) An Audio Emotion Module (AEM) is introduced to extract and transfer the emotional cues from an emotion reference image to the target generated video, enabling fine-grained and accurate emotion style control; (iii) A Face-Aware Audio Adapter (FAA) is proposed to isolate the audio-driven character with latent-level face mask, enabling independent audio injection via cross-attention for multi-character scenarios. These innovations empower VideoGen to surpass state-of-the-art methods on benchmark datasets and a newly proposed wild dataset, generating realistic avatars in dynamic, immersive scenarios. The source code and model weights will be released publicly.
 
-## **HunyuanVideo-Avatar Overall Architecture**
+## **VideoGen Overall Architecture**
 
 ![image](https://cdn-uploads.huggingface.co/production/uploads/646d7592bb95b5d4001e5a04/SAQAlLLsEzC1fURoL89_C.png)
 
-We propose **HunyuanVideo-Avatar**, a multi-modal diffusion transformer(MM-DiT)-based model capable of generating **dynamic**, **emotion-controllable**, and **multi-character dialogue** videos.
+We propose **VideoGen**, a multi-modal diffusion transformer(MM-DiT)-based model capable of generating **dynamic**, **emotion-controllable**, and **multi-character dialogue** videos.
 
-## 🎉 **HunyuanVideo-Avatar Key Features**
+## 🎉 **VideoGen Key Features**
 
 ![image](https://cdn-uploads.huggingface.co/production/uploads/646d7592bb95b5d4001e5a04/RVM42NLlvlwABiQNlTLdd.png)
 
 ### **High-Dynamic and Emotion-Controllable Video Generation**
 
-HunyuanVideo-Avatar supports animating any input **avatar images** to **high-dynamic** and **emotion-controllable** videos with simple **audio conditions**. Specifically, it takes as input **multi-style** avatar images at **arbitrary scales and resolutions**. The system supports multi-style avatars encompassing photorealistic, cartoon, 3D-rendered, and anthropomorphic characters. Multi-scale generation spanning portrait, upper-body and full-body. It generates videos with high-dynamic foreground and background, achieving superior realistic and naturalness. In addition, the system supports controlling facial emotions of the characters conditioned on input audio. 
+VideoGen supports animating any input **avatar images** to **high-dynamic** and **emotion-controllable** videos with simple **audio conditions**. Specifically, it takes as input **multi-style** avatar images at **arbitrary scales and resolutions**. The system supports multi-style avatars encompassing photorealistic, cartoon, 3D-rendered, and anthropomorphic characters. Multi-scale generation spanning portrait, upper-body and full-body. It generates videos with high-dynamic foreground and background, achieving superior realistic and naturalness. In addition, the system supports controlling facial emotions of the characters conditioned on input audio. 
 
 ### **Various Applications**
 
-HunyuanVideo-Avatar supports various downstream tasks and applications. For instance, the system generates talking avatar videos, which could be applied to e-commerce, online streaming, social media video production, etc. In addition, its multi-character animation feature enlarges the application such as video content creation, editing, etc. 
+VideoGen supports various downstream tasks and applications. For instance, the system generates talking avatar videos, which could be applied to e-commerce, online streaming, social media video production, etc. In addition, its multi-character animation feature enlarges the application such as video content creation, editing, etc. 
 
 ## 🚀 Parallel Inference on Multiple GPUs
 
 For example, to generate a video with 8 GPUs, you can use the following command:
 
 ```bash
-cd HunyuanVideo-Avatar
+cd VideoGen
 
 JOBS_DIR=$(dirname $(dirname "$0"))
 export PYTHONPATH=./
@@ -75,7 +75,7 @@ torchrun --nnodes=1 --nproc_per_node=8 --master_port 29605 hymm_sp/sample_batch.
 For example, to generate a video with 1 GPU, you can use the following command:
 
 ```bash
-cd HunyuanVideo-Avatar
+cd VideoGen
 
 JOBS_DIR=$(dirname $(dirname "$0"))
 export PYTHONPATH=./
@@ -103,7 +103,7 @@ CUDA_VISIBLE_DEVICES=0 python3 hymm_sp/sample_gpu_poor.py \
 ### Run with very low VRAM
 
 ```bash
-cd HunyuanVideo-Avatar
+cd VideoGen
 
 JOBS_DIR=$(dirname $(dirname "$0"))
 export PYTHONPATH=./
@@ -133,7 +133,7 @@ CUDA_VISIBLE_DEVICES=0 python3 hymm_sp/sample_gpu_poor.py \
 
 ## Run a Gradio Server
 ```bash
-cd HunyuanVideo-Avatar
+cd VideoGen
 
 bash ./scripts/run_gradio.sh
 
@@ -141,11 +141,11 @@ bash ./scripts/run_gradio.sh
 
 ## 🔗 BibTeX
 
-If you find [HunyuanVideo-Avatar](https://arxiv.org/pdf/2505.20156) useful for your research and applications, please cite using this BibTeX:
+If you find [VideoGen](https://arxiv.org/pdf/2505.20156) useful for your research and applications, please cite using this BibTeX:
 
 ```BibTeX
 @misc{hu2025HunyuanVideo-Avatar,
-      title={HunyuanVideo-Avatar: High-Fidelity Audio-Driven Human Animation for Multiple Characters}, 
+      title={VideoGen: High-Fidelity Audio-Driven Human Animation for Multiple Characters}, 
       author={Yi Chen and Sen Liang and Zixiang Zhou and Ziyao Huang and Yifeng Ma and Junshu Tang and Qin Lin and Yuan Zhou and Qinglin Lu},
       year={2025},
       eprint={2505.20156},
