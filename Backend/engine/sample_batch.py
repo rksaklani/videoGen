@@ -98,7 +98,9 @@ def main():
         
         if rank == 0:
             imageio.mimsave(output_path, final_frames, fps=fps.item())
-            os.system(f"ffmpeg -i '{output_path}' -i '{audio_path}' -shortest '{output_audio_path}' -y -loglevel quiet; rm '{output_path}'")
+            from Backend.utils.ffmpeg_helpers import mux_video_audio_shortest_then_remove_video
+            mux_video_audio_shortest_then_remove_video(
+                output_path, audio_path, output_audio_path)
 
 
 

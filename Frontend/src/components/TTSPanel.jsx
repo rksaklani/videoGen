@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { useGenerateFromTextMutation } from '../store/api'
+import { useState, useEffect } from 'react'
+import { useGenerateFromTextMutation, useGetHealthQuery } from '../store/api'
+import { getMaxOutputSeconds } from '../lib/generationLimits'
 import FileUpload from './FileUpload'
 import { FiMic } from 'react-icons/fi'
 
@@ -31,6 +32,12 @@ export default function TTSPanel({ onJobCreated, isReady }) {
   const [duration, setDuration] = useState(0)  // 0 = match audio length
   const [rate, setRate] = useState('+0%')
   const [generate, { isLoading }] = useGenerateFromTextMutation()
+  const { data: health } = useGetHealthQuery()
+  const maxDurationCap = getMaxOutputSeconds(health)
+
+  useEffect(() => {
+    setDuration((d) => (d > maxDurationCap ? maxDurationCap : d))
+  }, [maxDurationCap])
 
   const handleGenerate = async () => {
     if (!image || !text.trim()) return
@@ -70,6 +77,16 @@ export default function TTSPanel({ onJobCreated, isReady }) {
             <option value="+15%">Fast</option>
           </select>
         </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          Max output length: {duration === 0 ? 'Match TTS audio' : `${duration}s`}
+        </label>
+        <input type="range" min={0} max={maxDurationCap} step={5} value={duration}
+          onChange={(e) => setDuration(Number(e.target.value))}
+          className="w-full accent-brand-500" />
+        <p className="text-xs text-gray-400 mt-1">0 = full speech length (cap {maxDurationCap}s)</p>
       </div>
 
       <div>

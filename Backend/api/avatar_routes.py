@@ -15,6 +15,7 @@ from loguru import logger
 
 from Backend.auth.jwt import get_current_user
 from Backend.api.limits import MAX_DURATION_SECONDS, MAX_DURATION_HELP
+from Backend.utils.ffmpeg_helpers import convert_audio_to_wav_16k_mono
 from Backend.core.avatar_creator import AvatarCreator
 from Backend.core.tts import TTSEngine, VOICE_PRESETS
 from Backend.api.schemas import JobResponse, JobStatus
@@ -167,7 +168,7 @@ async def generate_with_avatar(
         audio_path = str(_storage.save_upload(audio_bytes, ext))
         if ext != ".wav":
             wav = audio_path.rsplit(".", 1)[0] + ".wav"
-            os.system(f"ffmpeg -i '{audio_path}' -ar 16000 -ac 1 '{wav}' -y -loglevel quiet")
+            convert_audio_to_wav_16k_mono(audio_path, wav)
             audio_path = wav
 
     elif text and text.strip():

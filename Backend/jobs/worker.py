@@ -1,6 +1,5 @@
 """Background worker with job queue, concurrency control, and progress tracking."""
 import threading
-import traceback
 import time
 from collections import deque
 from loguru import logger
@@ -43,8 +42,15 @@ class Worker:
         """Execute a single generation job with progress updates."""
         job_id = job.job_id
         start_time = time.time()
+        log = logger.bind(job_id=job_id)
 
         try:
+            log.info(
+                "job_start max_duration={} image={} audio={}",
+                job.max_duration,
+                job.image_path,
+                job.audio_path or "(none)",
+            )
             self.queue.update_job(job_id, status=JobStatus.PROCESSING,
                                   progress=0.05, message="Preprocessing inputs...")
 
@@ -67,12 +73,16 @@ class Worker:
                 progress=1.0,
                 message=f"Done! {result['duration']:.1f}s video in {elapsed / 60:.1f} min",
                 result=result)
-            logger.info(f"Job {job_id} completed in {elapsed:.0f}s: {result['duration']:.1f}s video")
+            log.info(
+                "job_done elapsed_sec={} video_duration_sec={} output={}",
+                f"{elapsed:.0f}",
+                f"{result.get('duration', 0):.1f}",
+                result.get("output_path", ""),
+            )
 
         except Exception as e:
             elapsed = time.time() - start_time
-            error_msg = traceback.format_exc()
-            logger.error(f"Job {job_id} failed after {elapsed:.0f}s: {error_msg}")
+            log.exception("job_failed elapsed_sec={:.0f}", elapsed)
             self.queue.update_job(
                 job_id, error=str(e),
                 message=f"Failed after {elapsed / 60:.1f} min: {str(e)}")

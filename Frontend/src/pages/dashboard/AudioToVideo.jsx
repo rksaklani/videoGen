@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useGenerateAvatarMutation, useGetHealthQuery } from '../../store/api'
+import { getMaxOutputSeconds } from '../../lib/generationLimits'
 import FileUpload from '../../components/FileUpload'
 import JobStatus from '../../components/JobStatus'
 import VideoPlayer from '../../components/VideoPlayer'
@@ -15,8 +16,7 @@ export default function AudioToVideo() {
   const { data: health } = useGetHealthQuery()
   const [generate, { isLoading }] = useGenerateAvatarMutation()
 
-  const maxDurationCap =
-    health?.generation_limits?.max_output_duration_seconds ?? 300
+  const maxDurationCap = getMaxOutputSeconds(health)
 
   useEffect(() => {
     setDuration((d) => (d > maxDurationCap ? maxDurationCap : d))

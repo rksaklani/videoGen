@@ -16,6 +16,7 @@ from Backend.core.engine import AvatarEngine
 from Backend.core.tts import TTSEngine, VOICE_PRESETS
 from Backend.auth.jwt import get_current_user
 from Backend.api.limits import MAX_DURATION_SECONDS, MAX_DURATION_HELP
+from Backend.utils.ffmpeg_helpers import convert_audio_to_wav_16k_mono
 
 router = APIRouter()
 
@@ -103,7 +104,7 @@ async def generate_avatar(
         # Convert non-WAV to WAV
         if audio_ext != ".wav":
             wav_path = str(audio_path).rsplit(".", 1)[0] + ".wav"
-            os.system(f"ffmpeg -i '{audio_path}' -ar 16000 -ac 1 '{wav_path}' -y -loglevel quiet")
+            convert_audio_to_wav_16k_mono(str(audio_path), wav_path)
             audio_path = Path(wav_path)
     elif image_ext not in {".mp4", ".avi", ".mov", ".mkv"}:
         raise HTTPException(400, "Audio file required for image input. Upload a video to auto-extract audio.")
@@ -315,7 +316,7 @@ async def clone_voice(
 
     # Convert to WAV
     wav_path = str(audio_path).rsplit(".", 1)[0] + ".wav"
-    os.system(f"ffmpeg -i '{audio_path}' -ar 16000 -ac 1 '{wav_path}' -y -loglevel quiet")
+    convert_audio_to_wav_16k_mono(str(audio_path), wav_path)
 
     cloner = VoiceCloner(tts_engine=tts)
     profile = cloner.save_voice_profile(user["email"], wav_path)
