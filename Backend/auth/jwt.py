@@ -49,11 +49,30 @@ def decode_token(token: str) -> Optional[dict]:
         return None
 
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
-    """Dependency that extracts and validates the current user from JWT token.
-    Returns anonymous user if no token provided (for public endpoints)."""
+_ANON = {"email": "anonymous", "name": "Anonymous"}
+
+
+async def get_current_user_optional(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> dict:
+    """Like ``get_current_user`` but never 401: missing or bad JWT → anonymous (for list/read UX)."""
     if not credentials:
-        return {"email": "anonymous", "name": "Anonymous"}
+        return _ANON.copy()
+    payload = decode_token(credentials.credentials)
+    if not payload:
+        logger.debug("JWT present but invalid or expired — treating as anonymous")
+        return _ANON.copy()
+    return {"email": payload.get("email"), "name": payload.get("name")}
+
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+    """Require a valid JWT, or anonymous when no ``Authorization`` header is sent.
+
+    If the client sends ``Authorization: Bearer …`` and the token is invalid/expired, returns **401**
+    so browsers can clear stale ``localStorage`` tokens. Omit the header entirely to use the anonymous user.
+    """
+    if not credentials:
+        return _ANON.copy()
 
     payload = decode_token(credentials.credentials)
     if not payload:

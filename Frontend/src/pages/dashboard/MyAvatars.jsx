@@ -32,15 +32,24 @@ export default function MyAvatars() {
   const [generating, setGenerating] = useState(false)
 
   const { data: health } = useGetHealthQuery()
-  const token = localStorage.getItem('token')
-  const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
+
+  const authHeaders = () => {
+    const t = localStorage.getItem('token')
+    return t ? { Authorization: `Bearer ${t}` } : {}
+  }
 
   const fetchAvatars = async () => {
     try {
-      const res = await fetch(`${API}/api/v1/avatars/list`, { headers })
+      let res = await fetch(`${API}/api/v1/avatars/list`, { headers: authHeaders() })
+      if (res.status === 401) {
+        localStorage.removeItem('token')
+        res = await fetch(`${API}/api/v1/avatars/list`, { headers: {} })
+      }
       const data = await res.json()
       setAvatars(data.avatars || [])
-    } catch (e) { console.error(e) }
+    } catch (e) {
+      console.error(e)
+    }
   }
 
   useEffect(() => { fetchAvatars() }, [])
@@ -56,7 +65,7 @@ export default function MyAvatars() {
     try {
       const endpoint = createMode === 'video' ? 'create-from-video' : 'create-from-image'
       const res = await fetch(`${API}/api/v1/avatars/${endpoint}`, {
-        method: 'POST', body: formData, headers,
+        method: 'POST', body: formData, headers: authHeaders(),
       })
       if (res.ok) {
         setShowCreate(false); setFile(null); setName('')
@@ -68,7 +77,7 @@ export default function MyAvatars() {
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this avatar?')) return
-    await fetch(`${API}/api/v1/avatars/${id}`, { method: 'DELETE', headers })
+    await fetch(`${API}/api/v1/avatars/${id}`, { method: 'DELETE', headers: authHeaders() })
     fetchAvatars()
     if (selectedAvatar?.avatar_id === id) setSelectedAvatar(null)
   }
@@ -83,7 +92,7 @@ export default function MyAvatars() {
 
     try {
       const res = await fetch(`${API}/api/v1/avatars/${selectedAvatar.avatar_id}/generate`, {
-        method: 'POST', body: formData, headers,
+        method: 'POST', body: formData, headers: authHeaders(),
       })
       const data = await res.json()
       if (data.job_id) { setJobId(data.job_id); setCompletedJobId(null) }

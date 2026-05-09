@@ -14,7 +14,7 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
 from fastapi.responses import FileResponse
 from loguru import logger
 
-from Backend.auth.jwt import get_current_user
+from Backend.auth.jwt import get_current_user, get_current_user_optional
 from Backend.api.limits import MAX_DURATION_SECONDS, MAX_DURATION_HELP
 from Backend.utils.ffmpeg_helpers import convert_audio_to_wav_16k_mono
 from Backend.core.avatar_creator import AvatarCreator
@@ -93,7 +93,7 @@ async def create_avatar_from_image(
 
 
 @router.get("/list")
-async def list_avatars(user: dict = Depends(get_current_user)):
+async def list_avatars(user: dict = Depends(get_current_user_optional)):
     """List all your saved avatars."""
     avatars = _creator.list_avatars(user_id=user["email"])
     return {"avatars": avatars, "count": len(avatars)}
