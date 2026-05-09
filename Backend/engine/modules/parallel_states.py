@@ -4,7 +4,8 @@ import datetime
 import torch.distributed as dist
 from typing import Any, Tuple
 from torch import Tensor
-from flash_attn.flash_attn_interface import flash_attn_varlen_func
+
+from .flash_attn_compat import flash_attn_varlen_func
 
 
 class COMM_INFO:

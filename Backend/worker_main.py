@@ -46,7 +46,7 @@ def main():
 
     poll = float(os.getenv("WORKER_POLL_INTERVAL", "1.0"))
     jobs_coll = open_jobs_collection(mongo_uri, mongo_db)
-    if not jobs_coll:
+    if jobs_coll is None:
         logger.error("Standalone worker requires a reachable MongoDB (MONGODB_URI). Aborting.")
         raise SystemExit(1)
 

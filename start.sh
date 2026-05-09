@@ -22,14 +22,36 @@ pkill -9 -f "python.*Backend" 2>/dev/null || true
 pkill -9 pt_main_thread 2>/dev/null || true
 sleep 2
 
-# Activate conda
-source $(conda info --base)/etc/profile.d/conda.sh
-conda activate VideoGen
+# Conda env (override with VIDEOGEN_CONDA_ENV=your-env)
+CONDA_ENV="${VIDEOGEN_CONDA_ENV:-VideoGen}"
 
-# Set environment
-export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
+# Prefer conda env when it exists; otherwise keep current interpreter (often base).
+if [ -f "$(conda info --base 2>/dev/null)/etc/profile.d/conda.sh" ]; then
+  # shellcheck source=/dev/null
+  source "$(conda info --base)/etc/profile.d/conda.sh"
+  ENV_DIR="$(conda info --base)/envs/${CONDA_ENV}"
+  if [ -d "$ENV_DIR" ]; then
+    conda activate "${CONDA_ENV}"
+    echo -e "${GREEN}Using conda env: ${CONDA_ENV}${NC}"
+  else
+    echo ""
+    echo -e "${RED}⚠️  conda env '${CONDA_ENV}' not found.${NC}"
+    echo "    Set VIDEOGEN_CONDA_ENV to an existing env name, or create ${CONDA_ENV}:"
+    echo "      conda create -n ${CONDA_ENV} python=3.10 -y"
+    echo "      conda activate ${CONDA_ENV}"
+    echo "      pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124"
+    echo "      pip install -r Backend/requirements.txt"
+    echo ""
+    echo -e "${BLUE}Continuing with current Python:${NC} $(command -v python)"
+    echo ""
+    conda activate base 2>/dev/null || true
+  fi
+  export LD_LIBRARY_PATH="${CONDA_PREFIX:-}/lib:${LD_LIBRARY_PATH:-}"
+else
+  echo "conda not initialised — using python on PATH ($(command -v python 2>/dev/null || echo none))"
+fi
+
 export PYTHONPATH=$(pwd)
-
 # Create required directories
 mkdir -p Backend/data/uploads Backend/data/outputs Backend/data/temp Backend/logs
 

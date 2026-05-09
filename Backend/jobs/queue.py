@@ -85,13 +85,13 @@ class JobQueue:
         self._coll: Optional[Collection] = mongo_coll
 
     def _upsert_job(self, job: Job):
-        if not self._coll:
+        if self._coll is None:
             return
         self._coll.replace_one({"job_id": job.job_id}, job.to_doc(), upsert=True)
 
     def hydrate(self):
         """Load active jobs after API restart; stale ``processing`` → ``queued``."""
-        if not self._coll:
+        if self._coll is None:
             return
         self._coll.update_many(
             {"status": JobStatus.PROCESSING.value},
@@ -113,7 +113,7 @@ class JobQueue:
 
     def claim_next_queued_job(self) -> Optional[Job]:
         """Atomically claim the oldest queued job (standalone GPU worker)."""
-        if not self._coll:
+        if self._coll is None:
             return None
         doc = self._coll.find_one_and_update(
             {"status": JobStatus.QUEUED.value},
@@ -153,7 +153,7 @@ class JobQueue:
             cached = self._jobs.get(job_id)
         if cached:
             return cached
-        if self._coll:
+        if self._coll is not None:
             doc = self._coll.find_one({"job_id": job_id})
             if doc:
                 job = Job.from_doc(doc)
@@ -196,7 +196,7 @@ class JobQueue:
         self._upsert_job(job)
 
     def list_jobs(self, limit: int = 20) -> list:
-        if self._coll:
+        if self._coll is not None:
             docs = self._coll.find().sort("created_at", -1).limit(limit)
             return [Job.from_doc(d) for d in docs]
         jobs = sorted(self._jobs.values(), key=lambda j: j.created_at, reverse=True)

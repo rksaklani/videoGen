@@ -4,6 +4,7 @@
 #   pip install -r Backend/requirements.txt
 #
 # System binary required on PATH: ffmpeg (apt install ffmpeg / brew install ffmpeg / conda install ffmpeg)
+# Optional GPU speedup: flash-attn (project falls back to PyTorch SDPA if missing — see Backend/engine/modules/flash_attn_compat.py)
 
 # === AI Engine ===
 opencv-python==4.9.0.80
@@ -20,6 +21,8 @@ librosa==0.11.0
 scikit-video==1.1.11
 imageio==2.34.0
 imageio-ffmpeg==0.5.1
+# Used by preprocessor + common deps; reinstall if PIL.ExifTags / IntEnum import fails:
+pillow>=10.4.0
 
 # === API Server ===
 fastapi==0.115.12

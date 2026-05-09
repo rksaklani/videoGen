@@ -21,11 +21,19 @@ Download **model weights** into `Backend/weights/` (often tens of GB — see wei
 
 ## One-command stack (recommended)
 
-From the **repository root** (uses conda env **`VideoGen`** in `start.sh` — adjust `conda activate` if needed):
+From the **repository root**:
 
 ```bash
 bash start.sh
 ```
+
+`start.sh` tries conda env **`VideoGen`** (`$(conda info --base)/envs/VideoGen`). If it does **not** exist, the script warns and continues with **`base`** (or whatever is already active). To use another env:
+
+```bash
+VIDEOGEN_CONDA_ENV=my_torch_env bash start.sh
+```
+
+Create **`VideoGen`** when you want a dedicated env: `conda create -n VideoGen python=3.10 -y` then install PyTorch + `pip install -r Backend/requirements.txt` (see **Backend** section below).
 
 | Service | URL |
 |--------|-----|

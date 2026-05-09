@@ -6,11 +6,8 @@ import numpy as np
 import torch
 import librosa
 from pathlib import Path
-from PIL import Image
 from einops import rearrange
 from loguru import logger
-import torchvision.transforms as transforms
-from torchvision.transforms import ToPILImage
 
 
 class Preprocessor:
@@ -19,13 +16,22 @@ class Preprocessor:
     def __init__(self, feature_extractor, align_instance):
         self.feature_extractor = feature_extractor
         self.align_instance = align_instance
-        self.llava_transform = transforms.Compose([
-            transforms.Resize((336, 336), interpolation=transforms.InterpolationMode.BILINEAR),
-            transforms.ToTensor(),
-            transforms.Normalize(
-                (0.48145466, 0.4578275, 0.4082107),
-                (0.26862954, 0.26130258, 0.27577711)),
-        ])
+        # torchvision + PIL imported lazily — avoids brittle import crashes at API startup and
+        # keeps heavy vision deps out of Backend.main import chain until first preprocess.
+        self._llava_transform = None
+
+    def _get_llava_transform(self):
+        import torchvision.transforms as transforms
+
+        if self._llava_transform is None:
+            self._llava_transform = transforms.Compose([
+                transforms.Resize((336, 336), interpolation=transforms.InterpolationMode.BILINEAR),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    (0.48145466, 0.4578275, 0.4082107),
+                    (0.26862954, 0.26130258, 0.27577711)),
+            ])
+        return self._llava_transform
 
     def extract_frame_from_video(self, video_path: str, output_path: str = None) -> str:
         """Extract the best frame from a video for use as reference."""
@@ -91,6 +97,9 @@ class Preprocessor:
 
     def prepare_image(self, image_path: str, target_size: int) -> dict:
         """Load and resize image, return tensor + metadata."""
+        from PIL import Image
+        from torchvision.transforms import ToPILImage
+
         ref_image = Image.open(image_path).convert("RGB")
         w, h = ref_image.size
         scale = target_size / min(w, h)
@@ -109,7 +118,7 @@ class Preprocessor:
         to_pil = ToPILImage()
         pixel_ref = rearrange(ref_tensor.clone().unsqueeze(0), "b h w c -> b c h w")
         pixel_ref_llava = torch.stack(
-            [self.llava_transform(to_pil(img)) for img in pixel_ref], dim=0)
+            [self._get_llava_transform()(to_pil(img)) for img in pixel_ref], dim=0)
 
         return {
             "pixel_value_ref": pixel_ref.unsqueeze(0).to(dtype=torch.float16),

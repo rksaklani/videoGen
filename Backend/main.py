@@ -85,8 +85,8 @@ def create_app() -> FastAPI:
         logger.info("JOB_QUEUE_MEMORY_ONLY set — Mongo job persistence disabled")
     else:
         jobs_coll = open_jobs_collection(mongo_uri, mongo_db)
-        if jobs_coll:
-            logger.info("Job queue using MongoDB collection %s.jobs", mongo_db)
+        if jobs_coll is not None:
+            logger.info("Job queue using MongoDB collection {}.jobs", mongo_db)
 
     app = FastAPI(
         title="videoGen API",
