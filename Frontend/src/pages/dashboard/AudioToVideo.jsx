@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useGenerateAvatarMutation, useGetHealthQuery } from '../../store/api'
 import FileUpload from '../../components/FileUpload'
 import JobStatus from '../../components/JobStatus'
@@ -14,6 +14,13 @@ export default function AudioToVideo() {
   const [completedJobId, setCompletedJobId] = useState(null)
   const { data: health } = useGetHealthQuery()
   const [generate, { isLoading }] = useGenerateAvatarMutation()
+
+  const maxDurationCap =
+    health?.generation_limits?.max_output_duration_seconds ?? 300
+
+  useEffect(() => {
+    setDuration((d) => (d > maxDurationCap ? maxDurationCap : d))
+  }, [maxDurationCap])
 
   const handleGenerate = async () => {
     if (!image || !audio) return
@@ -51,8 +58,8 @@ export default function AudioToVideo() {
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Duration: {duration === 0 ? 'Match audio length' : `${duration}s`}
             </label>
-            <input type="range" min={0} max={120} step={5} value={duration} onChange={(e) => setDuration(Number(e.target.value))} className="w-full accent-brand-500" />
-            <p className="text-xs text-gray-400 mt-1">0 = auto-match your audio length</p>
+            <input type="range" min={0} max={maxDurationCap} step={5} value={duration} onChange={(e) => setDuration(Number(e.target.value))} className="w-full accent-brand-500" />
+            <p className="text-xs text-gray-400 mt-1">0 = match audio length (server max {maxDurationCap}s)</p>
           </div>
 
           <button onClick={handleGenerate} disabled={!image || !audio || isLoading || !health?.engine_loaded}

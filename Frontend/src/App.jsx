@@ -14,6 +14,7 @@ import DashboardLayout from './pages/dashboard/DashboardLayout'
 import Create from './pages/dashboard/Create'
 import TextToVideo from './pages/dashboard/TextToVideo'
 import AudioToVideo from './pages/dashboard/AudioToVideo'
+import VideoReference from './pages/dashboard/VideoReference'
 import DialogueEditor from './pages/dashboard/DialogueEditor'
 import MyAvatars from './pages/dashboard/MyAvatars'
 import Templates from './pages/dashboard/Templates'
@@ -39,6 +40,7 @@ export default function App() {
           <Route index element={<Create />} />
           <Route path="text-to-video" element={<TextToVideo />} />
           <Route path="audio-to-video" element={<AudioToVideo />} />
+          <Route path="video-reference" element={<VideoReference />} />
           <Route path="dialogue" element={<DialogueEditor />} />
           <Route path="my-avatars" element={<MyAvatars />} />
           <Route path="templates" element={<Templates />} />

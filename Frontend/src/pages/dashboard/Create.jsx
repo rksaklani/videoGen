@@ -1,5 +1,5 @@
 import { useGetHealthQuery } from '../../store/api'
-import { FiArrowRight, FiUser, FiMic, FiMusic, FiUsers } from 'react-icons/fi'
+import { FiArrowRight, FiUser, FiMic, FiMusic, FiUsers, FiVideo } from 'react-icons/fi'
 import { Link } from 'react-router-dom'
 
 export default function Create() {
@@ -11,6 +11,7 @@ export default function Create() {
     { to: '/dashboard/my-avatars', icon: <FiUser className="w-6 h-6" />, title: 'My Avatars', desc: 'Upload once, generate forever. The fastest way to create videos.', color: 'from-brand-500 to-purple-500', tag: 'Recommended' },
     { to: '/dashboard/text-to-video', icon: <FiMic className="w-6 h-6" />, title: 'Text to Video', desc: 'Quick one-off: upload any image and type your script.', color: 'from-cyan-500 to-blue-500' },
     { to: '/dashboard/audio-to-video', icon: <FiMusic className="w-6 h-6" />, title: 'Audio to Video', desc: 'Use your own recorded audio to drive the avatar.', color: 'from-emerald-500 to-teal-500' },
+    { to: '/dashboard/video-reference', icon: <FiVideo className="w-6 h-6" />, title: 'Video Reference', desc: 'Upload a talking-head clip — re-animate or give it a new script.', color: 'from-violet-500 to-indigo-500' },
     { to: '/dashboard/dialogue', icon: <FiUsers className="w-6 h-6" />, title: 'Multi-Character', desc: 'Two characters talking — our unique feature no one else has.', color: 'from-pink-500 to-rose-500', tag: 'Unique' },
   ]
 

@@ -17,7 +17,8 @@ export const avatarApi = createApi({
         formData.append('image', image)
         formData.append('audio', audio)
         formData.append('prompt', prompt || '')
-        formData.append('max_duration', maxDuration || 5)
+        // Use ?? so 0 ("match full audio") is sent; `||` wrongly turned 0 into 5.
+        formData.append('max_duration', String(maxDuration ?? 5))
         return { url: '/generate', method: 'POST', body: formData }
       },
       invalidatesTags: ['Jobs'],
@@ -45,7 +46,7 @@ export const avatarApi = createApi({
         formData.append('text', text)
         formData.append('voice', voice || 'en-male')
         formData.append('prompt', prompt || '')
-        formData.append('max_duration', maxDuration || 5)
+        formData.append('max_duration', String(maxDuration ?? 5))
         formData.append('rate', rate || '+0%')
         return { url: '/generate-from-text', method: 'POST', body: formData }
       },

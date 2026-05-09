@@ -3,7 +3,7 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useGetHealthQuery } from '../../store/api'
 import {
   FiZap, FiPlusCircle, FiGrid, FiClock, FiSettings, FiLogOut,
-  FiMenu, FiX, FiMic, FiUpload, FiUsers, FiUser,
+  FiMenu, FiX, FiMic, FiUpload, FiUsers, FiUser, FiVideo,
   FiChevronLeft, FiChevronRight
 } from 'react-icons/fi'
 
@@ -12,6 +12,7 @@ const sidebarLinks = [
   { to: '/dashboard/my-avatars', icon: <FiUser className="w-5 h-5" />, label: 'My Avatars' },
   { to: '/dashboard/text-to-video', icon: <FiMic className="w-5 h-5" />, label: 'Text to Video' },
   { to: '/dashboard/audio-to-video', icon: <FiUpload className="w-5 h-5" />, label: 'Audio to Video' },
+  { to: '/dashboard/video-reference', icon: <FiVideo className="w-5 h-5" />, label: 'Video Reference' },
   { to: '/dashboard/dialogue', icon: <FiUsers className="w-5 h-5" />, label: 'Dialogue' },
   { to: '/dashboard/templates', icon: <FiGrid className="w-5 h-5" />, label: 'Templates' },
   { to: '/dashboard/history', icon: <FiClock className="w-5 h-5" />, label: 'History' },

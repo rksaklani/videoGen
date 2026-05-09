@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useGetHealthQuery } from '../../store/api'
 import FileUpload from '../../components/FileUpload'
 import JobStatus from '../../components/JobStatus'
@@ -30,6 +30,13 @@ export default function VideoReference() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { data: health } = useGetHealthQuery()
 
+  const maxDurationCap =
+    health?.generation_limits?.max_output_duration_seconds ?? 300
+
+  useEffect(() => {
+    setDuration((d) => (d > maxDurationCap ? maxDurationCap : d))
+  }, [maxDurationCap])
+
   const handleGenerate = async () => {
     if (!video) return
     if (mode === 'new-script' && !text.trim()) return
@@ -39,7 +46,7 @@ export default function VideoReference() {
     formData.append('video', video)
     formData.append('mode', mode)
     formData.append('prompt', prompt)
-    formData.append('max_duration', duration)
+    formData.append('max_duration', String(duration))
     if (mode === 'new-script') {
       formData.append('text', text)
       formData.append('voice', voice)
@@ -134,7 +141,7 @@ export default function VideoReference() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Duration: {duration === 0 ? 'Auto' : `${duration}s`}</label>
-                    <input type="range" min={0} max={120} step={5} value={duration}
+                    <input type="range" min={0} max={maxDurationCap} step={5} value={duration}
                       onChange={(e) => setDuration(Number(e.target.value))}
                       className="w-full accent-brand-500 mt-2" />
                   </div>
