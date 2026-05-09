@@ -1,3 +1,48 @@
+# Python
 __pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.so
+
+# Environment
+.env
+*.env.local
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+Frontend/dist/
+Frontend/.vite/
+
+# Model weights (80GB — download separately)
+Backend/weights/ckpts/
+Backend/weights/*.pt
+Backend/weights/*.safetensors
+Backend/weights/*.bin
+
+# Data (generated at runtime)
+Backend/data/
+Backend/logs/
 temp/
+
+# TensorRT cache
+Backend/weights/trt_cache/
+Backend/weights/onnx/
+
+# Gradio
 .gradio/

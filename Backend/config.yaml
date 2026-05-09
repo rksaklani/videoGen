@@ -1,0 +1,61 @@
+# HunyuanVideo-Avatar API Configuration
+# All settings in one place — no more magic numbers
+
+server:
+  host: "0.0.0.0"
+  port: 8000
+  workers: 1
+
+model:
+  base_path: "./Backend/weights/ckpts"
+  checkpoint: "hunyuan-video-t2v-720p/transformers/mp_rank_00_model_states_fp8.pt"
+  vae: "884-16c-hy0801"
+  text_encoder: "llava-llama-3-8b"
+  text_encoder_2: "clipL"
+  whisper: "whisper-tiny"
+  face_detector: "det_align/detface.pt"
+  precision: "fp16"
+  use_fp8: true
+
+inference:
+  default_steps: 50
+  default_cfg_scale: 7.5
+  default_seed: 42
+  default_image_size: 512
+  max_image_size: 768
+  default_fps: 25
+  max_frames: 9999          # No artificial limit — audio duration = video duration
+  max_duration_seconds: 300  # 5 minutes max
+  chunk_duration_seconds: 5  # Split long audio into 5s chunks
+  use_deepcache: true
+  cpu_offload: true
+  upscale_to: 1080           # Upscale output to 1080p
+  enhance_face: true         # Sharpen facial details
+  negative_prompt: "Aerial view, overexposed, low quality, deformation, bad hands, bad teeth, bad eyes, bad limbs, distortion, blurring"
+
+storage:
+  upload_dir: "./Backend/data/uploads"
+  output_dir: "./Backend/data/outputs"
+  temp_dir: "./Backend/data/temp"
+  max_upload_size_mb: 100
+
+logging:
+  level: "INFO"
+  file: "./Backend/logs/Backend.log"
+
+database:
+  uri: "mongodb+srv://[db_user]:[db_password]@cluster0.smtyx9g.mongodb.net/"
+  name: "avatar_studio"
+
+auth:
+  jwt_secret: "avatar-studio-secret-change-in-production"
+  token_expire_hours: 24
+
+cors:
+  origins:
+    - "http://localhost:3000"
+    - "http://localhost:5173"
+
+cleanup:
+  max_age_hours: 24
+  interval_minutes: 30
