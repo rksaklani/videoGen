@@ -3,23 +3,17 @@ videoGen API server
 Usage: python -m Backend.main
 Docs:  http://localhost:8000/docs
 """
+from Backend.env_load import load_application_env
+
+load_application_env()
+
 import os
 import yaml
 import uvicorn
-from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
-
-# Load .env file
-env_path = Path("Backend/.env")
-if env_path.exists():
-    for line in env_path.read_text().splitlines():
-        line = line.strip()
-        if line and not line.startswith("#") and "=" in line:
-            key, val = line.split("=", 1)
-            os.environ.setdefault(key.strip(), val.strip())
 
 from Backend.utils.logger import setup_logger
 from Backend.utils.storage import Storage
@@ -72,6 +66,13 @@ def create_app() -> FastAPI:
 
     setup_logger(level=config["logging"]["level"], log_file=config["logging"]["file"])
 
+    env_name = (os.getenv("ENVIRONMENT") or os.getenv("APP_ENV") or "").strip().lower()
+    if env_name in ("production", "prod"):
+        if not (os.getenv("JWT_SECRET") or "").strip():
+            raise RuntimeError(
+                "JWT_SECRET must be set when ENVIRONMENT or APP_ENV is production."
+            )
+
     mongo_uri = (os.getenv("MONGODB_URI") or "").strip() or config.get("database", {}).get("uri") or "mongodb://localhost:27017"
     mongo_db = (os.getenv("MONGODB_NAME") or "").strip() or config.get("database", {}).get("name") or "avatar_studio"
 
@@ -108,8 +109,11 @@ def create_app() -> FastAPI:
 
     from Backend.api.rate_limit import limiter, rate_limit_handler
     from slowapi.errors import RateLimitExceeded
+    from slowapi.middleware import SlowAPIMiddleware
+
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
+    app.add_middleware(SlowAPIMiddleware)
 
     storage_cfg = config["storage"]
     storage = Storage(
@@ -127,6 +131,12 @@ def create_app() -> FastAPI:
         interval_minutes=30.0,
     )
 
+    upload_mb_env = (os.getenv("MAX_UPLOAD_SIZE_MB") or "").strip()
+    if upload_mb_env:
+        max_upload_bytes = int(float(upload_mb_env) * 1024 * 1024)
+    else:
+        max_upload_bytes = int(float(storage_cfg.get("max_upload_size_mb", 100)) * 1024 * 1024)
+
     app.state.config = config
     app.state.engine = engine
     app.state.cleanup = cleanup
@@ -136,8 +146,15 @@ def create_app() -> FastAPI:
     app.state.job_worker_mode = job_worker_mode
     app.state.job_runner = worker
 
-    init_routes(engine, queue, worker, storage, job_worker_mode=job_worker_mode)
-    init_avatar_routes(engine, queue, worker, storage)
+    init_routes(
+        engine,
+        queue,
+        worker,
+        storage,
+        job_worker_mode=job_worker_mode,
+        max_upload_bytes=max_upload_bytes,
+    )
+    init_avatar_routes(engine, queue, worker, storage, max_upload_bytes=max_upload_bytes)
 
     app.include_router(api_router, prefix="/api/v1")
     app.include_router(avatar_router, prefix="/api/v1")
@@ -164,10 +181,15 @@ if __name__ == "__main__":
     with open(CONFIG_PATH) as f:
         config = yaml.safe_load(f)
 
+    srv = config.get("server", {})
+    host = (os.getenv("SERVER_HOST") or os.getenv("HOST") or srv.get("host") or "0.0.0.0").strip()
+    port = int(os.getenv("SERVER_PORT") or os.getenv("PORT") or srv.get("port") or 8000)
+    workers = int(os.getenv("UVICORN_WORKERS") or srv.get("workers") or 1)
+
     uvicorn.run(
         "Backend.main:app",
-        host=config["server"]["host"],
-        port=config["server"]["port"],
-        workers=config["server"]["workers"],
+        host=host,
+        port=port,
+        workers=workers,
         reload=False,
     )

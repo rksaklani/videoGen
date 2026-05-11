@@ -1,8 +1,9 @@
 """Authentication endpoints — register, login, profile."""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, EmailStr, Field
 from Backend.auth.jwt import hash_password, verify_password, create_token
 from Backend.db.repository import UserRepository
+from Backend.api.rate_limit import limiter, RATE_LIMIT_AUTH
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 user_repo = UserRepository()
@@ -27,7 +28,8 @@ class TokenResponse(BaseModel):
 
 
 @router.post("/register", response_model=TokenResponse)
-async def register(req: RegisterRequest):
+@limiter.limit(RATE_LIMIT_AUTH)
+async def register(request: Request, req: RegisterRequest):
     existing = await user_repo.get_by_email(req.email)
     if existing:
         raise HTTPException(400, "Email already registered")
@@ -40,7 +42,8 @@ async def register(req: RegisterRequest):
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(req: LoginRequest):
+@limiter.limit(RATE_LIMIT_AUTH)
+async def login(request: Request, req: LoginRequest):
     user = await user_repo.get_by_email(req.email)
     if not user or not verify_password(req.password, user["hashed_password"]):
         raise HTTPException(401, "Invalid email or password")

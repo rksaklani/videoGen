@@ -1,8 +1,10 @@
 import { FiDownload, FiShare2 } from 'react-icons/fi'
 
+import { apiV1Base } from '../config/env'
+
 export default function VideoPlayer({ jobId }) {
   if (!jobId) return null
-  const videoUrl = `${import.meta.env.VITE_API_URL || ''}/api/v1/download/${jobId}`
+  const videoUrl = `${apiV1Base}/download/${jobId}`
 
   return (
     <div className="glass-card rounded-2xl overflow-hidden animate-fade-up">

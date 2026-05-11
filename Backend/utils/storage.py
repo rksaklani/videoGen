@@ -15,8 +15,17 @@ class Storage:
         for d in [self.upload_dir, self.output_dir, self.temp_dir]:
             d.mkdir(parents=True, exist_ok=True)
 
-    def save_upload(self, file_bytes: bytes, extension: str) -> Path:
+    def save_upload(
+        self,
+        file_bytes: bytes,
+        extension: str,
+        *,
+        max_bytes: int | None = None,
+    ) -> Path:
         """Save an uploaded file and return its path."""
+        if max_bytes is not None and len(file_bytes) > max_bytes:
+            mb = max_bytes / (1024 * 1024)
+            raise ValueError(f"File exceeds maximum upload size ({mb:g} MB)")
         filename = f"{uuid.uuid4().hex}{extension}"
         path = self.upload_dir / filename
         path.write_bytes(file_bytes)

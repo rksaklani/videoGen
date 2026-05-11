@@ -5,7 +5,7 @@ import JobStatus from '../../components/JobStatus'
 import VideoPlayer from '../../components/VideoPlayer'
 import { FiPlus, FiTrash2, FiPlay, FiUser, FiVideo, FiImage, FiMic } from 'react-icons/fi'
 
-const API = import.meta.env.VITE_API_URL || ''
+import { apiV1Base } from '../../config/env'
 const VOICES = [
   { key: 'en-male', label: '🇺🇸 Male' }, { key: 'en-female', label: '🇺🇸 Female' },
   { key: 'en-male-uk', label: '🇬🇧 Male' }, { key: 'hi-male', label: '🇮🇳 Male' },
@@ -40,10 +40,10 @@ export default function MyAvatars() {
 
   const fetchAvatars = async () => {
     try {
-      let res = await fetch(`${API}/api/v1/avatars/list`, { headers: authHeaders() })
+      let res = await fetch(`${apiV1Base}/avatars/list`, { headers: authHeaders() })
       if (res.status === 401) {
         localStorage.removeItem('token')
-        res = await fetch(`${API}/api/v1/avatars/list`, { headers: {} })
+        res = await fetch(`${apiV1Base}/avatars/list`, { headers: {} })
       }
       const data = await res.json()
       setAvatars(data.avatars || [])
@@ -64,7 +64,7 @@ export default function MyAvatars() {
 
     try {
       const endpoint = createMode === 'video' ? 'create-from-video' : 'create-from-image'
-      const res = await fetch(`${API}/api/v1/avatars/${endpoint}`, {
+      const res = await fetch(`${apiV1Base}/avatars/${endpoint}`, {
         method: 'POST', body: formData, headers: authHeaders(),
       })
       if (res.ok) {
@@ -77,7 +77,7 @@ export default function MyAvatars() {
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this avatar?')) return
-    await fetch(`${API}/api/v1/avatars/${id}`, { method: 'DELETE', headers: authHeaders() })
+    await fetch(`${apiV1Base}/avatars/${id}`, { method: 'DELETE', headers: authHeaders() })
     fetchAvatars()
     if (selectedAvatar?.avatar_id === id) setSelectedAvatar(null)
   }
@@ -91,7 +91,7 @@ export default function MyAvatars() {
     formData.append('max_duration', '0')
 
     try {
-      const res = await fetch(`${API}/api/v1/avatars/${selectedAvatar.avatar_id}/generate`, {
+      const res = await fetch(`${apiV1Base}/avatars/${selectedAvatar.avatar_id}/generate`, {
         method: 'POST', body: formData, headers: authHeaders(),
       })
       const data = await res.json()
@@ -185,7 +185,7 @@ export default function MyAvatars() {
               onClick={() => { setSelectedAvatar(a); setGenVoice(a.voice_analysis?.matched_voice || '') }}
               className={`glass-card rounded-2xl p-4 flex items-center gap-3 cursor-pointer transition-all hover:scale-[1.01]
                 ${selectedAvatar?.avatar_id === a.avatar_id ? 'ring-2 ring-brand-500 bg-brand-50/50' : ''}`}>
-              <img src={`${API}/api/v1/avatars/${a.avatar_id}/image`} alt={a.name}
+              <img src={`${apiV1Base}/avatars/${a.avatar_id}/image`} alt={a.name}
                 className="w-14 h-14 rounded-xl object-cover bg-gray-100"
                 onError={(e) => { e.target.style.display = 'none' }} />
               <div className="flex-1 min-w-0">
@@ -206,7 +206,7 @@ export default function MyAvatars() {
             <div className="space-y-4">
               <div className="glass-card rounded-2xl p-6">
                 <div className="flex items-center gap-4 mb-4">
-                  <img src={`${API}/api/v1/avatars/${selectedAvatar.avatar_id}/image`} alt=""
+                  <img src={`${apiV1Base}/avatars/${selectedAvatar.avatar_id}/image`} alt=""
                     className="w-16 h-16 rounded-xl object-cover" />
                   <div>
                     <h3 className="font-bold text-gray-800">{selectedAvatar.name}</h3>

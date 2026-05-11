@@ -1,9 +1,8 @@
 """API endpoints for avatar generation."""
-from __future__ import annotations
 
 import os
 from pathlib import Path
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, Request
 from fastapi.responses import FileResponse
 from loguru import logger
 
@@ -21,6 +20,8 @@ from Backend.api.limits import MAX_DURATION_SECONDS, MAX_DURATION_HELP
 from Backend.utils.ffmpeg_helpers import convert_audio_to_wav_16k_mono
 from Backend.api.deps import require_embedded_inference_ready
 from Backend.api.job_helpers import enqueue_video_job
+from Backend.api.upload_helpers import save_upload_limited
+from Backend.api.rate_limit import limiter, RATE_LIMIT_GENERATE
 
 router = APIRouter()
 
@@ -31,6 +32,7 @@ worker: Worker | ApiOnlyJobRunner = None
 storage: Storage = None
 tts: TTSEngine = None
 _worker_mode = "embedded"
+_max_upload_bytes: int | None = None
 
 
 def init_routes(
@@ -39,10 +41,12 @@ def init_routes(
     _worker: Worker | ApiOnlyJobRunner,
     _storage: Storage,
     job_worker_mode: str = "embedded",
+    max_upload_bytes: int | None = None,
 ):
-    global engine, queue, worker, storage, tts, _worker_mode
+    global engine, queue, worker, storage, tts, _worker_mode, _max_upload_bytes
     engine, queue, worker, storage = _engine, _queue, _worker, _storage
     _worker_mode = job_worker_mode
+    _max_upload_bytes = max_upload_bytes
     tts = TTSEngine(output_dir=str(storage.temp_dir))
 
 
@@ -70,7 +74,9 @@ async def health_check():
 
 
 @router.post("/generate", response_model=JobResponse)
+@limiter.limit(RATE_LIMIT_GENERATE)
 async def generate_avatar(
+    request: Request,
     image: UploadFile = File(..., description="Reference image or video"),
     audio: UploadFile = File(None, description="Audio file (optional if uploading video)"),
     prompt: str = Form(default="", description="Scene description"),
@@ -100,7 +106,7 @@ async def generate_avatar(
 
     # Save image/video
     image_bytes = await image.read()
-    image_path = storage.save_upload(image_bytes, image_ext)
+    image_path = save_upload_limited(storage, image_bytes, image_ext, max_bytes=_max_upload_bytes)
 
     # Handle audio
     audio_path = None
@@ -111,7 +117,7 @@ async def generate_avatar(
             raise HTTPException(400, f"Invalid audio format: {audio_ext}. Use: {valid_audio}")
 
         audio_bytes = await audio.read()
-        audio_path = storage.save_upload(audio_bytes, audio_ext)
+        audio_path = save_upload_limited(storage, audio_bytes, audio_ext, max_bytes=_max_upload_bytes)
 
         # Convert non-WAV to WAV
         if audio_ext != ".wav":
@@ -223,7 +229,9 @@ async def generate_tts(request: TTSRequest):
 
 
 @router.post("/generate-from-text", response_model=JobResponse)
+@limiter.limit(RATE_LIMIT_GENERATE)
 async def generate_avatar_from_text(
+    request: Request,
     image: UploadFile = File(..., description="Reference image or video"),
     text: str = Form(..., description="Text to speak"),
     voice: str = Form(default="en-male", description="Voice preset"),
@@ -249,7 +257,7 @@ async def generate_avatar_from_text(
 
     # Save image
     image_bytes = await image.read()
-    image_path = storage.save_upload(image_bytes, image_ext)
+    image_path = save_upload_limited(storage, image_bytes, image_ext, max_bytes=_max_upload_bytes)
 
     # Generate speech from text
     try:
@@ -307,7 +315,9 @@ async def apply_optimizations():
 # ==================== Voice Clone Endpoints ====================
 
 @router.post("/voice/clone")
+@limiter.limit(RATE_LIMIT_GENERATE)
 async def clone_voice(
+    request: Request,
     audio: UploadFile = File(..., description="Reference voice audio (10-60 seconds)"),
     user: dict = Depends(get_current_user),
 ):
@@ -320,7 +330,7 @@ async def clone_voice(
         raise HTTPException(400, f"Invalid audio format: {audio_ext}")
 
     audio_bytes = await audio.read()
-    audio_path = storage.save_upload(audio_bytes, audio_ext)
+    audio_path = save_upload_limited(storage, audio_bytes, audio_ext, max_bytes=_max_upload_bytes)
 
     # Convert to WAV
     wav_path = str(audio_path).rsplit(".", 1)[0] + ".wav"
@@ -375,7 +385,9 @@ async def upscale_video(
 
 
 @router.post("/video/add-overlay", dependencies=[Depends(require_embedded_inference_ready)])
+@limiter.limit(RATE_LIMIT_GENERATE)
 async def add_video_overlay(
+    request: Request,
     job_id: str = Form(..., description="Job ID of completed video"),
     overlay: UploadFile = File(..., description="Logo/watermark image"),
     position: str = Form(default="bottom-right"),
@@ -392,7 +404,9 @@ async def add_video_overlay(
         raise HTTPException(404, "Video file not found")
 
     overlay_bytes = await overlay.read()
-    overlay_path = storage.save_upload(overlay_bytes, Path(overlay.filename).suffix.lower())
+    overlay_path = save_upload_limited(
+        storage, overlay_bytes, Path(overlay.filename).suffix.lower(), max_bytes=_max_upload_bytes
+    )
 
     output_path = input_path.replace(".mp4", "_branded.mp4")
     bg = BackgroundProcessor()
@@ -404,7 +418,9 @@ async def add_video_overlay(
 # ==================== Multi-Character Dialogue ====================
 
 @router.post("/generate-dialogue", response_model=JobResponse, dependencies=[Depends(require_embedded_inference_ready)])
+@limiter.limit(RATE_LIMIT_GENERATE)
 async def generate_dialogue(
+    request: Request,
     script: str = Form(..., description="Dialogue script (JSON format)"),
     char_a_image: UploadFile = File(..., description="Character A image"),
     char_b_image: UploadFile = File(None, description="Character B image (optional)"),
@@ -453,14 +469,18 @@ async def generate_dialogue(
 
     # Save character images
     img_a_bytes = await char_a_image.read()
-    img_a_path = storage.save_upload(img_a_bytes, Path(char_a_image.filename).suffix.lower())
+    img_a_path = save_upload_limited(
+        storage, img_a_bytes, Path(char_a_image.filename).suffix.lower(), max_bytes=_max_upload_bytes
+    )
 
     if len(parsed.characters) > 0:
         parsed.characters[0].image_path = str(img_a_path)
 
     if char_b_image and char_b_image.filename:
         img_b_bytes = await char_b_image.read()
-        img_b_path = storage.save_upload(img_b_bytes, Path(char_b_image.filename).suffix.lower())
+        img_b_path = save_upload_limited(
+            storage, img_b_bytes, Path(char_b_image.filename).suffix.lower(), max_bytes=_max_upload_bytes
+        )
         if len(parsed.characters) > 1:
             parsed.characters[1].image_path = str(img_b_path)
     elif len(parsed.characters) > 1:
@@ -514,7 +534,9 @@ async def generate_dialogue(
 
 
 @router.post("/generate-dialogue-simple", response_model=JobResponse, dependencies=[Depends(require_embedded_inference_ready)])
+@limiter.limit(RATE_LIMIT_GENERATE)
 async def generate_dialogue_simple(
+    request: Request,
     char_a_image: UploadFile = File(..., description="Character A image"),
     char_b_image: UploadFile = File(None, description="Character B image"),
     char_a_name: str = Form(default="Person A"),
@@ -548,12 +570,16 @@ async def generate_dialogue_simple(
 
     # Save images
     img_a_bytes = await char_a_image.read()
-    img_a_path = storage.save_upload(img_a_bytes, Path(char_a_image.filename).suffix.lower())
+    img_a_path = save_upload_limited(
+        storage, img_a_bytes, Path(char_a_image.filename).suffix.lower(), max_bytes=_max_upload_bytes
+    )
     characters[0].image_path = str(img_a_path)
 
     if char_b_image and char_b_image.filename:
         img_b_bytes = await char_b_image.read()
-        img_b_path = storage.save_upload(img_b_bytes, Path(char_b_image.filename).suffix.lower())
+        img_b_path = save_upload_limited(
+            storage, img_b_bytes, Path(char_b_image.filename).suffix.lower(), max_bytes=_max_upload_bytes
+        )
         characters[1].image_path = str(img_b_path)
     else:
         characters[1].image_path = str(img_a_path)
@@ -596,7 +622,9 @@ async def generate_dialogue_simple(
 # ==================== Video Reference → Avatar ====================
 
 @router.post("/create-avatar-from-video", response_model=JobResponse)
+@limiter.limit(RATE_LIMIT_GENERATE)
 async def create_avatar_from_video(
+    request: Request,
     video: UploadFile = File(..., description="Reference video of a person talking"),
     text: str = Form(None, description="New text for the avatar to speak (optional)"),
     voice: str = Form(default="", description="Voice preset (auto-detected from video if empty)"),
@@ -627,7 +655,7 @@ async def create_avatar_from_video(
 
     # Save video
     video_bytes = await video.read()
-    video_path = storage.save_upload(video_bytes, video_ext)
+    video_path = save_upload_limited(storage, video_bytes, video_ext, max_bytes=_max_upload_bytes)
 
     if mode == "new-script" and not text:
         raise HTTPException(400, "Text is required when mode is 'new-script'")
@@ -660,7 +688,9 @@ async def create_avatar_from_video(
 
 
 @router.post("/extract-from-video", dependencies=[Depends(require_embedded_inference_ready)])
+@limiter.limit(RATE_LIMIT_GENERATE)
 async def extract_from_video(
+    request: Request,
     video: UploadFile = File(..., description="Video to extract frame and audio from"),
 ):
     """
@@ -672,7 +702,7 @@ async def extract_from_video(
         raise HTTPException(400, f"Invalid video format: {video_ext}")
 
     video_bytes = await video.read()
-    video_path = storage.save_upload(video_bytes, video_ext)
+    video_path = save_upload_limited(storage, video_bytes, video_ext, max_bytes=_max_upload_bytes)
 
     from Backend.core.preprocessor import Preprocessor
     preprocessor = engine.preprocessor

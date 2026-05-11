@@ -1,8 +1,10 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 
+import { apiV1Base } from '../config/env'
+
 export const avatarApi = createApi({
   reducerPath: 'avatarApi',
-  baseQuery: fetchBaseQuery({ baseUrl: `${import.meta.env.VITE_API_URL || ''}/api/v1` }),
+  baseQuery: fetchBaseQuery({ baseUrl: apiV1Base }),
   tagTypes: ['Jobs'],
   endpoints: (builder) => ({
     // Health check

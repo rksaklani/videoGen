@@ -51,7 +51,7 @@ storage:
 
 logging:
   level: "INFO"
-  file: "./Backend/logs/Backend.log"
+  file: "./Backend/logs/server.log"
 
 # Prefer MONGODB_URI and MONGODB_NAME env vars for production secrets.
 database:

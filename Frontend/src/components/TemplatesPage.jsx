@@ -1,5 +1,7 @@
 import { FiImage } from 'react-icons/fi'
 
+import { apiV1Base } from '../config/env'
+
 const TEMPLATES = [
   { id: 'sample-1', name: 'Campfire Person', category: 'samples', desc: 'Person by a campfire in forest' },
   { id: 'sample-2', name: 'Forest Portrait', category: 'samples', desc: 'Person in a forested area' },
@@ -12,8 +14,6 @@ const TEMPLATES = [
 ]
 
 export default function TemplatesPage({ onSelect }) {
-  const apiUrl = import.meta.env.VITE_API_URL || ''
-
   return (
     <div className="animate-fade-up">
       <div className="mb-6">
@@ -27,7 +27,7 @@ export default function TemplatesPage({ onSelect }) {
             className="glass-card rounded-2xl overflow-hidden cursor-pointer transition-all hover:scale-[1.03] hover:shadow-xl group">
             <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center overflow-hidden">
               <img
-                src={`${apiUrl}/api/v1/templates/${t.id}/image`}
+                src={`${apiV1Base}/templates/${t.id}/image`}
                 alt={t.name}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                 onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }}

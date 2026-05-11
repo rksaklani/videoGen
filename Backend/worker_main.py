@@ -12,19 +12,13 @@ from __future__ import annotations
 
 import os
 import time
-from pathlib import Path
 
 import yaml
 from loguru import logger
 
-# Match Backend/main.py .env loading for local runs
-env_path = Path("Backend/.env")
-if env_path.exists():
-    for line in env_path.read_text().splitlines():
-        line = line.strip()
-        if line and not line.startswith("#") and "=" in line:
-            key, val = line.split("=", 1)
-            os.environ.setdefault(key.strip(), val.strip())
+from Backend.env_load import load_application_env
+
+load_application_env()
 
 from Backend.utils.logger import setup_logger
 from Backend.core.engine import AvatarEngine

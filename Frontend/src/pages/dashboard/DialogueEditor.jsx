@@ -5,6 +5,8 @@ import JobStatus from '../../components/JobStatus'
 import VideoPlayer from '../../components/VideoPlayer'
 import { FiPlus, FiTrash2, FiUsers, FiPlay } from 'react-icons/fi'
 
+import { apiV1Base } from '../../config/env'
+
 const VOICES = [
   { key: 'en-male', label: '🇺🇸 Male' }, { key: 'en-female', label: '🇺🇸 Female' },
   { key: 'en-male-uk', label: '🇬🇧 Male' }, { key: 'en-female-uk', label: '🇬🇧 Female' },
@@ -64,7 +66,7 @@ export default function DialogueEditor() {
     formData.append('dialogue_text', dialogueText)
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/generate-dialogue-simple`, {
+      const res = await fetch(`${apiV1Base}/generate-dialogue-simple`, {
         method: 'POST', body: formData,
       })
       const data = await res.json()

@@ -6,11 +6,10 @@ Flow:
 3. GET  /avatars/list → See all your avatars
 4. POST /avatars/{id}/generate → Pick avatar + type text → get video
 """
-from __future__ import annotations
 
 import os
 from pathlib import Path
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, Request
 from fastapi.responses import FileResponse
 from loguru import logger
 
@@ -21,6 +20,8 @@ from Backend.core.avatar_creator import AvatarCreator
 from Backend.core.tts import TTSEngine, VOICE_PRESETS
 from Backend.api.schemas import JobResponse, JobStatus
 from Backend.api.job_helpers import enqueue_video_job
+from Backend.api.upload_helpers import save_upload_limited
+from Backend.api.rate_limit import limiter, RATE_LIMIT_GENERATE
 
 router = APIRouter(prefix="/avatars", tags=["Avatars"])
 
@@ -30,15 +31,19 @@ _queue = None
 _worker = None
 _storage = None
 _creator = AvatarCreator()
+_max_upload_bytes: int | None = None
 
 
-def init_avatar_routes(engine, queue, worker, storage):
-    global _engine, _queue, _worker, _storage
+def init_avatar_routes(engine, queue, worker, storage, max_upload_bytes: int | None = None):
+    global _engine, _queue, _worker, _storage, _max_upload_bytes
     _engine, _queue, _worker, _storage = engine, queue, worker, storage
+    _max_upload_bytes = max_upload_bytes
 
 
 @router.post("/create-from-video")
+@limiter.limit(RATE_LIMIT_GENERATE)
 async def create_avatar_from_video(
+    request: Request,
     video: UploadFile = File(..., description="Video of yourself talking (10s-2min)"),
     name: str = Form(..., description="Avatar name (e.g. 'My Avatar')"),
     user: dict = Depends(get_current_user),
@@ -52,7 +57,7 @@ async def create_avatar_from_video(
         raise HTTPException(400, f"Invalid video format: {ext}")
 
     video_bytes = await video.read()
-    video_path = _storage.save_upload(video_bytes, ext)
+    video_path = save_upload_limited(_storage, video_bytes, ext, max_bytes=_max_upload_bytes)
 
     try:
         profile = _creator.create_from_video(
@@ -69,7 +74,9 @@ async def create_avatar_from_video(
 
 
 @router.post("/create-from-image")
+@limiter.limit(RATE_LIMIT_GENERATE)
 async def create_avatar_from_image(
+    request: Request,
     image: UploadFile = File(..., description="Reference face image"),
     name: str = Form(..., description="Avatar name"),
     voice: str = Form(default="en-male", description="Voice preset"),
@@ -81,7 +88,7 @@ async def create_avatar_from_image(
         raise HTTPException(400, f"Invalid image format: {ext}")
 
     image_bytes = await image.read()
-    image_path = _storage.save_upload(image_bytes, ext)
+    image_path = save_upload_limited(_storage, image_bytes, ext, max_bytes=_max_upload_bytes)
 
     profile = _creator.create_from_image(
         image_path=str(image_path),
@@ -132,7 +139,9 @@ async def delete_avatar(avatar_id: str, user: dict = Depends(get_current_user)):
 
 
 @router.post("/{avatar_id}/generate", response_model=JobResponse)
+@limiter.limit(RATE_LIMIT_GENERATE)
 async def generate_with_avatar(
+    request: Request,
     avatar_id: str,
     text: str = Form(None, description="Text to speak (uses TTS)"),
     audio: UploadFile = File(None, description="Audio file (alternative to text)"),
@@ -167,7 +176,9 @@ async def generate_with_avatar(
         # User uploaded audio
         ext = Path(audio.filename).suffix.lower()
         audio_bytes = await audio.read()
-        audio_path = str(_storage.save_upload(audio_bytes, ext))
+        audio_path = str(
+            save_upload_limited(_storage, audio_bytes, ext, max_bytes=_max_upload_bytes)
+        )
         if ext != ".wav":
             wav = audio_path.rsplit(".", 1)[0] + ".wav"
             convert_audio_to_wav_16k_mono(audio_path, wav)

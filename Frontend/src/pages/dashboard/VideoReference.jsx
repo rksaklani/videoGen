@@ -6,6 +6,8 @@ import JobStatus from '../../components/JobStatus'
 import VideoPlayer from '../../components/VideoPlayer'
 import { FiVideo, FiMic, FiType, FiArrowRight } from 'react-icons/fi'
 
+import { apiV1Base } from '../../config/env'
+
 const VOICES = [
   { key: '', label: '🔊 Auto-detect from video' },
   { key: 'en-male', label: '🇺🇸 English Male' },
@@ -53,7 +55,7 @@ export default function VideoReference() {
     }
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/create-avatar-from-video`, {
+      const res = await fetch(`${apiV1Base}/create-avatar-from-video`, {
         method: 'POST', body: formData,
       })
       const data = await res.json()

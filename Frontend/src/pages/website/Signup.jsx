@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FiZap, FiMail, FiLock, FiUser } from 'react-icons/fi'
 
+import { apiV1Base } from '../../config/env'
+
 export default function Signup() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -13,7 +15,7 @@ export default function Signup() {
     e.preventDefault()
     setError('')
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/auth/register`, {
+      const res = await fetch(`${apiV1Base}/auth/register`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password }),
       })
